@@ -1,10 +1,3 @@
-//! # Examples
-//!
-//! ```
-//! cargo run -- --name "Apple Internal Keyboard / Trackpad" --map 0x700000039:0x70000002A --map 0x700000064:0x700000035
-//! cargo run -- --name "USB Keyboard" --map 0x700000039:0x70000002A
-//! ```
-
 use clap::Clap;
 
 use anyhow::Result;
