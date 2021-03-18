@@ -1,13 +1,12 @@
 mod command;
 mod key;
 
-use std::collections::HashMap;
+use std::io;
 use std::iter;
 use std::process;
 use std::str;
 
-use anyhow::Result;
-use regex_macro::regex;
+use anyhow::{Context, Result};
 use serde::Serialize;
 use thiserror::Error;
 
@@ -37,8 +36,10 @@ pub struct Mods {
 }
 
 /// A unique keyboard.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct Keyboard {
+    #[serde(skip)]
+    name: String,
     #[serde(rename = "VendorID")]
     vendor_id: u64,
     #[serde(rename = "ProductID")]
@@ -65,26 +66,64 @@ impl Mod {
     }
 }
 
+fn parse_plist(value: plist::Value) -> Option<Vec<plist::Dictionary>> {
+    value
+        .into_dictionary()?
+        .remove("IORegistryEntryChildren")?
+        .into_array()?
+        .into_iter()
+        .next()?
+        .into_dictionary()?
+        .remove("IORegistryEntryChildren")?
+        .into_array()?
+        .into_iter()
+        .map(plist::Value::into_dictionary)
+        .collect()
+}
+
+fn parse_keyboards(value: plist::Value) -> Result<Vec<Keyboard>> {
+    parse_plist(value)
+        .context("failed to parse plist")?
+        .into_iter()
+        .map(Keyboard::from_plist_dict)
+        .collect()
+}
+
 impl Keyboard {
+    /// Parse a keyboard from a plist dictionary.
+    fn from_plist_dict(mut dict: plist::Dictionary) -> Result<Self> {
+        let name = dict
+            .remove("IORegistryEntryName")
+            .context("expected `IORegistryEntryName`")?
+            .into_string()
+            .context("expected valid `IORegistryEntryName` value")?;
+        let vendor_id = dict
+            .remove("idVendor")
+            .context("expected `idVendor`")?
+            .as_unsigned_integer()
+            .context("expected valid `idVendor` value")?;
+        let product_id = dict
+            .remove("idProduct")
+            .context("expected `idProduct` key")?
+            .as_unsigned_integer()
+            .context("expected valid `idProduct` value")?;
+        Ok(Keyboard {
+            name,
+            vendor_id,
+            product_id,
+        })
+    }
+
     /// Find a keyboard by name.
     pub fn lookup_by_name(name: &str) -> Result<Self> {
         let text = process::Command::new("ioreg")
-            .args(&["-p", "IOUSB", "-x", "-n", name])
+            .args(&["-a", "-l", "-p", "IOUSB", "-n", name])
             .output_text()?;
-
-        let map: HashMap<&str, u64> = regex!("\"(idProduct|idVendor)\" = 0x([[:alnum:]]+)")
-            .captures_iter(&text)
-            .map(|captures| {
-                (
-                    captures.get(1).unwrap().as_str(),
-                    u64::from_str_radix(&captures[2], 16).unwrap(),
-                )
-            })
-            .collect();
-        Ok(Self {
-            vendor_id: map["idVendor"],
-            product_id: map["idProduct"],
-        })
+        let obj = plist::Value::from_reader(io::Cursor::new(text))?;
+        parse_keyboards(obj)?
+            .into_iter()
+            .find(|kb| kb.name == name)
+            .with_context(|| format!("failed to find keyboard with name `{}`", name))
     }
 
     /// Apply the modifications to the keyboard.
