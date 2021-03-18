@@ -67,18 +67,22 @@ impl Mod {
 }
 
 fn parse_plist(value: plist::Value) -> Option<Vec<plist::Dictionary>> {
-    value
+    let mut result = Vec::new();
+    for value in value
         .into_dictionary()?
         .remove("IORegistryEntryChildren")?
         .into_array()?
-        .into_iter()
-        .next()?
-        .into_dictionary()?
-        .remove("IORegistryEntryChildren")?
-        .into_array()?
-        .into_iter()
-        .map(plist::Value::into_dictionary)
-        .collect()
+    {
+        let dicts: Option<Vec<_>> = value
+            .into_dictionary()?
+            .remove("IORegistryEntryChildren")?
+            .into_array()?
+            .into_iter()
+            .map(plist::Value::into_dictionary)
+            .collect();
+        result.extend(dicts?);
+    }
+    Some(result)
 }
 
 fn parse_keyboards(value: plist::Value) -> Result<Vec<Keyboard>> {
@@ -123,12 +127,8 @@ impl Keyboard {
         parse_keyboards(obj)
     }
 
-    /// Find a keyboard by name.
-    pub fn lookup_by_name(name: &str) -> Result<Self> {
-        Self::list()?
-            .into_iter()
-            .find(|kb| kb.name == name)
-            .with_context(|| format!("failed to find keyboard with name `{}`", name))
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     /// Apply the modifications to the keyboard.
