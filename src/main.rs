@@ -23,11 +23,8 @@ struct Opt {
 }
 
 fn main() -> Result<()> {
-    // Apple Internal Keyboard
-    // - Remap Caps Lock to Backspace.
-    // - Remap Section sign to Back tick.
     let opt = Opt::parse();
-    let keyboard = Keyboard::lookup_by_name(&opt.name)?;
+    let mut keyboard = Keyboard::lookup_by_name(&opt.name)?;
     let mut mods = Vec::new();
     for m in opt.swap {
         mods.push(m);

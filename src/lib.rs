@@ -114,20 +114,25 @@ impl Keyboard {
         })
     }
 
-    /// Find a keyboard by name.
-    pub fn lookup_by_name(name: &str) -> Result<Self> {
+    /// List all the keyboards.
+    pub fn list() -> Result<Vec<Self>> {
         let text = process::Command::new("ioreg")
-            .args(&["-a", "-l", "-p", "IOUSB", "-n", name])
+            .args(&["-a", "-l", "-p", "IOUSB"])
             .output_text()?;
         let obj = plist::Value::from_reader(io::Cursor::new(text))?;
-        parse_keyboards(obj)?
+        parse_keyboards(obj)
+    }
+
+    /// Find a keyboard by name.
+    pub fn lookup_by_name(name: &str) -> Result<Self> {
+        Self::list()?
             .into_iter()
             .find(|kb| kb.name == name)
             .with_context(|| format!("failed to find keyboard with name `{}`", name))
     }
 
     /// Apply the modifications to the keyboard.
-    pub fn apply(&self, mods: Mods) -> Result<()> {
+    pub fn apply(&mut self, mods: Mods) -> Result<()> {
         process::Command::new("hidutil")
             .arg("property")
             .arg("--matching")
@@ -139,7 +144,7 @@ impl Keyboard {
     }
 
     /// Remove all modifications from the keyboard.
-    pub fn reset(&self) -> Result<()> {
+    pub fn reset(&mut self) -> Result<()> {
         self.apply(Mods::default())
     }
 }
@@ -159,7 +164,7 @@ impl str::FromStr for Mod {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let err = || ParseModError::Other(s.to_owned());
-        if s == "" {
+        if s.is_empty() {
             return Err(err());
         }
         let d = s.chars().next().unwrap();
