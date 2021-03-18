@@ -1,4 +1,5 @@
 mod command;
+mod key;
 
 use std::collections::HashMap;
 use std::iter;
@@ -12,6 +13,7 @@ use regex_macro::regex;
 use serde::Serialize;
 
 use crate::command::CommandExt;
+pub use crate::key::Key;
 
 /// A keyboard modification.
 #[derive(Debug, Serialize)]
