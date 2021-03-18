@@ -22,18 +22,24 @@ struct Opt {
     map: Vec<Mod>,
 }
 
+impl Opt {
+    fn mods(&self) -> Vec<Mod> {
+        let mut mods = Vec::new();
+        for m in self.swap.iter().copied() {
+            mods.push(m);
+            mods.push(m.swapped());
+        }
+        mods.extend(&self.map);
+        mods
+    }
+}
+
 fn main() -> Result<()> {
     let opt = Opt::parse();
 
-    if let Some(name) = opt.name {
-        if let Some(mut kb) = Keyboard::list()?.into_iter().find(|kb| kb.name() == name) {
-            let mut mods = Vec::new();
-            for m in opt.swap {
-                mods.push(m);
-                mods.push(m.swapped());
-            }
-            mods.extend(opt.map);
-
+    if let Some(name) = &opt.name {
+        if let Some(mut kb) = Keyboard::find(|kb| kb.name() == name)? {
+            let mods = opt.mods();
             if opt.reset {
                 kb.reset()?;
             } else {

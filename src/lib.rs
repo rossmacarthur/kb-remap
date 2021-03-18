@@ -127,6 +127,15 @@ impl Keyboard {
         parse_keyboards(obj)
     }
 
+    /// Find a keyboard matching the given predicate.
+    pub fn find<P>(predicate: P) -> Result<Option<Self>>
+    where
+        P: FnMut(&Self) -> bool,
+    {
+        Ok(Self::list()?.into_iter().find(predicate))
+    }
+
+    /// The name of the keyboard.
     pub fn name(&self) -> &str {
         &self.name
     }
