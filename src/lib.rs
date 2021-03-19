@@ -73,14 +73,14 @@ fn parse_plist(value: plist::Value) -> Option<Vec<plist::Dictionary>> {
         .remove("IORegistryEntryChildren")?
         .into_array()?
     {
-        let dicts: Option<Vec<_>> = value
-            .into_dictionary()?
-            .remove("IORegistryEntryChildren")?
-            .into_array()?
-            .into_iter()
-            .map(plist::Value::into_dictionary)
-            .collect();
-        result.extend(dicts?);
+        if let Some(value) = value.into_dictionary()?.remove("IORegistryEntryChildren") {
+            let dicts: Option<Vec<_>> = value
+                .into_array()?
+                .into_iter()
+                .map(plist::Value::into_dictionary)
+                .collect();
+            result.extend(dicts?);
+        }
     }
     Some(result)
 }
