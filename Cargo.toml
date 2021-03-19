@@ -1,12 +1,12 @@
 [package]
 name = "kb-remap"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Ross MacArthur <ross@macarthur.io>"]
 edition = "2018"
 description = "Tool to assist remapping macOS keyboard keys"
-license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/rossmacarthur/kb-remap"
+license = "MIT OR Apache-2.0"
 keywords = ["keyboard", "macos"]
 categories = ["command-line-utilities"]
 
