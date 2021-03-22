@@ -14,11 +14,11 @@ struct Opt {
     reset: bool,
 
     /// Swap two keys. Equivalent to two `map` options.
-    #[clap(short, long, value_name = "/SRC/DST/")]
+    #[clap(short, long, value_name = "SRC:DST")]
     swap: Vec<Mod>,
 
     /// A map of source key to destination key.
-    #[clap(short, long, value_name = "/SRC/DST/")]
+    #[clap(short, long, value_name = "SRC:DST")]
     map: Vec<Mod>,
 }
 

@@ -6,14 +6,14 @@ Tool to assist remapping macOS keyboard keys.
 
 ```sh
 # The following remaps capslock to backspace and swaps § and ` on a the internal macOS keyboard.
-$ kb-remap --name "Apple Internal Keyboard / Trackpad" --map /capslock/delete/ --swap '/0x64/`'
+$ kb-remap --name "Apple Internal Keyboard / Trackpad" --map capslock:delete --swap '0x64:`'
 Apple Internal Keyboard / Trackpad
   • Raw(100) -> Char('`')
   • Char('`') -> Raw(100)
   • CapsLock -> Delete
 
 # This remaps capslock to backspace on a keyboard called "USB Keyboard"
-$ kb-remap --name "USB Keyboard" --map /0x39/0x2A/
+$ kb-remap --name "USB Keyboard" --map 0x39:0x2A
 USB Keyboard
   • Raw(57) -> Raw(42)
 ```

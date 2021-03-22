@@ -176,8 +176,7 @@ impl str::FromStr for Mod {
         if s.is_empty() {
             return Err(err());
         }
-        let d = s.chars().next().unwrap();
-        let mut it = s.splitn(4, d).skip(1);
+        let mut it = s.splitn(2, ':');
         let src = it.next().ok_or_else(err)?.parse()?;
         let dst = it.next().ok_or_else(err)?.parse()?;
         Ok(Self { src, dst })
@@ -191,6 +190,37 @@ impl iter::FromIterator<Mod> for Mods {
     {
         Mods {
             mods: iter.into_iter().collect(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::str::FromStr;
+
+    #[test]
+    fn mod_from_str() {
+        let test_cases = &[
+            (
+                "return:A",
+                Mod {
+                    src: Key::Return,
+                    dst: Key::Char('A'),
+                },
+            ),
+            (
+                "capslock:0x64",
+                Mod {
+                    src: Key::CapsLock,
+                    dst: Key::Raw(0x64),
+                },
+            ),
+        ];
+
+        for tc in test_cases {
+            assert_eq!(Mod::from_str(tc.0).unwrap(), tc.1);
         }
     }
 }

@@ -54,11 +54,11 @@ impl FromStr for Key {
             "esc" | "escape" => Key::Escape,
             "⌫" | "del" | "delete" => Key::Delete,
             "⇪" | "capslock" => Key::CapsLock,
-            s if s.chars().count() == 1 => Key::Char(s.chars().next().unwrap()),
-            s if s.starts_with("0x") => u64::from_str_radix(s.trim_start_matches("0x"), 16)
+            m if m.chars().count() == 1 => Key::Char(s.chars().next().unwrap()),
+            m if m.starts_with("0x") => u64::from_str_radix(m.trim_start_matches("0x"), 16)
                 .map(Key::Raw)
                 .map_err(|_| ParseKeyError(s.to_owned()))?,
-            s => s
+            _ => s
                 .parse()
                 .map(Key::Raw)
                 .map_err(|_| ParseKeyError(s.to_owned()))?,
@@ -154,6 +154,8 @@ where
 mod tests {
     use super::*;
 
+    use std::str::FromStr;
+
     #[test]
     fn key_from_str() {
         assert_eq!(Key::from_str("0x39").unwrap(), Key::Raw(0x39));
@@ -171,7 +173,9 @@ mod tests {
 
     #[test]
     fn key_serialize_err() {
-        let err = serde_json::to_string(&Key::Char('§')).unwrap_err();
+        let mut buf = Vec::new();
+        let mut ser = serde_json::Serializer::new(&mut buf);
+        let err = serialize(&Key::Char('§'), &mut ser).unwrap_err();
         assert_eq!(
             err.to_string(),
             "failed to serialize `Key::Char('§')`, consider using `Key::Raw(..)`"
