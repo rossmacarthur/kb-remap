@@ -5,6 +5,7 @@ use thiserror::Error;
 
 /// A key on a keyboard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Key {
     /// ⏎
     Return,
