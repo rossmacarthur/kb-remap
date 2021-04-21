@@ -39,7 +39,9 @@ pub struct Mods {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 pub struct Keyboard {
     #[serde(skip)]
-    name: String,
+    product_name: String,
+    #[serde(skip)]
+    vendor_name: String,
     #[serde(rename = "VendorID")]
     vendor_id: u64,
     #[serde(rename = "ProductID")]
@@ -97,11 +99,16 @@ fn parse_keyboards(value: plist::Value) -> Result<Vec<Keyboard>> {
 impl Keyboard {
     /// Parse a keyboard from a plist dictionary.
     fn from_plist_dict(mut dict: plist::Dictionary) -> Result<Self> {
-        let name = dict
-            .remove("IORegistryEntryName")
-            .context("expected `IORegistryEntryName`")?
+        let product_name = dict
+            .remove("USB Product Name")
+            .context("expected `USB Product Name`")?
             .into_string()
-            .context("expected valid `IORegistryEntryName` value")?;
+            .context("expected valid `USB Product Name` value")?;
+        let vendor_name = dict
+            .remove("USB Vendor Name")
+            .context("expected `USB Vendor Name`")?
+            .into_string()
+            .context("expected valid `USB Vendor Name` value")?;
         let vendor_id = dict
             .remove("idVendor")
             .context("expected `idVendor`")?
@@ -113,7 +120,8 @@ impl Keyboard {
             .as_unsigned_integer()
             .context("expected valid `idProduct` value")?;
         Ok(Keyboard {
-            name,
+            product_name,
+            vendor_name,
             vendor_id,
             product_id,
         })
@@ -136,9 +144,14 @@ impl Keyboard {
         Ok(Self::list()?.into_iter().find(predicate))
     }
 
-    /// The name of the keyboard.
-    pub fn name(&self) -> &str {
-        &self.name
+    /// The product name of the keyboard.
+    pub fn product_name(&self) -> &str {
+        &self.product_name.trim()
+    }
+
+    /// The product name of the keyboard.
+    pub fn vendor_name(&self) -> &str {
+        &self.vendor_name.trim()
     }
 
     /// Apply the modifications to the keyboard.

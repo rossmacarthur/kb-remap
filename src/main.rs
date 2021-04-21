@@ -1,6 +1,7 @@
-use clap::Clap;
+use std::iter::{once, repeat};
 
 use anyhow::{bail, Result};
+use clap::Clap;
 use kb_remap::{Keyboard, Mod};
 
 #[derive(Debug, Clap)]
@@ -34,17 +35,43 @@ impl Opt {
     }
 }
 
+fn tabulate<'a>(
+    header: (&'a str, &'a str),
+    rows: impl Iterator<Item = (&'a str, &'a str)> + Clone,
+) {
+    let data = once(header).chain(rows);
+    let len_0 = data
+        .clone()
+        .map(|(a, _)| a.chars().count())
+        .max()
+        .unwrap_or(0);
+    let len_1 = data
+        .clone()
+        .map(|(_, b)| b.chars().count())
+        .max()
+        .unwrap_or(0);
+    println!();
+    for (i, (a, b)) in data.enumerate() {
+        println!("| {1:0$} | {3:2$} |", len_0, a, len_1, b);
+        if i == 0 {
+            let a = repeat("-").take(len_0).collect::<String>();
+            let b = repeat("-").take(len_1).collect::<String>();
+            println!("|-{1:0$}-|-{3:2$}-|", len_0, a, len_1, b);
+        }
+    }
+}
+
 fn main() -> Result<()> {
     let opt = Opt::parse();
 
     if let Some(name) = &opt.name {
-        if let Some(mut kb) = Keyboard::find(|kb| kb.name() == name)? {
+        if let Some(mut kb) = Keyboard::find(|kb| kb.product_name() == name)? {
             let mods = opt.mods();
             if opt.reset {
                 kb.reset()?;
             } else {
                 kb.apply(mods.iter().cloned().collect())?;
-                println!("{}", kb.name());
+                println!("{}: {}", kb.vendor_name(), kb.product_name());
                 for m in &mods {
                     println!("  • {:?} -> {:?}", m.src(), m.dst());
                 }
@@ -53,10 +80,11 @@ fn main() -> Result<()> {
             bail!("did not find a keyboard with name `{}`", name);
         }
     } else {
-        println!("Found the following USB devices:");
-        for kb in Keyboard::list()? {
-            println!("  {}", kb.name());
-        }
+        let kbs = Keyboard::list()?;
+        tabulate(
+            ("Vendor Name", "Product Name"),
+            kbs.iter().map(|kb| (kb.vendor_name(), kb.product_name())),
+        );
     };
 
     Ok(())
