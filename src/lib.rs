@@ -66,22 +66,23 @@ impl Mod {
     }
 }
 
-fn parse_plist(value: plist::Value) -> Option<Vec<plist::Dictionary>> {
-    let mut result = Vec::new();
-    for value in value
-        .into_dictionary()?
-        .remove("IORegistryEntryChildren")?
-        .into_array()?
-    {
-        if let Some(value) = value.into_dictionary()?.remove("IORegistryEntryChildren") {
-            let dicts: Option<Vec<_>> = value
-                .into_array()?
-                .into_iter()
-                .map(plist::Value::into_dictionary)
-                .collect();
-            result.extend(dicts?);
+/// Recursively parse USB information, recursing into any
+/// `IORegistryEntryChildren` entries.
+fn parse_plist_recurse(value: plist::Value, result: &mut Vec<plist::Dictionary>) -> Option<()> {
+    let mut dict = value.into_dictionary()?;
+    if let Some(array) = dict.remove("IORegistryEntryChildren") {
+        for value in array.into_array()?.into_iter() {
+            parse_plist_recurse(value, result)?;
         }
+    } else {
+        result.push(dict);
     }
+    Some(())
+}
+
+fn parse_plist(value: plist::Value) -> Option<Vec<plist::Dictionary>> {
+    let mut result = Default::default();
+    parse_plist_recurse(value, &mut result)?;
     Some(result)
 }
 
