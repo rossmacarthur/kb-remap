@@ -17,15 +17,20 @@ Running the tool without any options will list the available USB devices.
 $ kb-remap
 ```
 ```text
-Found the following USB devices:
-  Apple T2 Controller
-  Ambient Light Sensor
-  Headset
-  Touch Bar Backlight
-  FaceTime HD Camera (Built-in)
-  Touch Bar Display
-  Apple Internal Keyboard / Trackpad
-  USB Keyboard
+| Vendor Name           | Product Name                       |
+| --------------------- | ---------------------------------- |
+| Apple Inc.            | Apple T2 Controller                |
+| Apple                 | Headset                            |
+| Apple Inc.            | Touch Bar Display                  |
+| Apple Inc.            | FaceTime HD Camera (Built-in)      |
+| Apple Inc.            | Touch Bar Backlight                |
+| Apple Inc.            | Ambient Light Sensor               |
+| Apple Inc.            | Apple Internal Keyboard / Trackpad |
+| Microchip Tech        | USB5734                            |
+| VIA Technologies Inc. | USB 2.0 BILLBOARD                  |
+| Microchip Tech        | Hub Controller                     |
+| SONiX                 | USB Keyboard                       |
+| Yubico                | YubiKey OTP+FIDO+CCID              |
 ```
 
 Usually it's pretty simple to pick out which devices are keyboards. Using the
@@ -66,7 +71,7 @@ Instead of a constantly running application `kb-remap` simply subprocesses to
 built-in macOS `ioreg` and `hidutil` commands to fetch keyboard information and
 to remap keys. This remapping does not persist if keyboards are unplugged or
 **if your Mac goes to sleep**. `kb-remap` does not solve this problem for you
-yet. One option is to install plist file to
+yet. One option is to install a launchd service to automatically run `kb-remap`.
 
 [Karabiner-Elements]: https://github.com/pqrs-org/Karabiner-Elements
 
