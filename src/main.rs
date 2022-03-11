@@ -1,10 +1,10 @@
 use std::iter::{once, repeat};
 
 use anyhow::{bail, Result};
-use clap::Clap;
+use clap::Parser;
 use kb_remap::{Keyboard, Mod};
 
-#[derive(Debug, Clap)]
+#[derive(Debug, Parser)]
 struct Opt {
     /// The name of the keyboard.
     #[clap(short, long, value_name = "NAME")]
