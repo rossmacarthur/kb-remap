@@ -1,240 +1,139 @@
 mod command;
 mod key;
+mod mods;
 
-use std::io;
-use std::iter;
+use std::collections::HashMap;
 use std::process;
-use std::str;
 
 use anyhow::{Context, Result};
 use serde::Serialize;
-use thiserror::Error;
 
 use crate::command::CommandExt;
 pub use crate::key::{Key, ParseKeyError};
+use crate::mods::Mods;
+pub use crate::mods::{Mod, ParseModError};
 
-/// A keyboard modification.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-pub struct Mod {
-    #[serde(
-        rename = "HIDKeyboardModifierMappingSrc",
-        serialize_with = "crate::key::serialize"
-    )]
-    src: Key,
-    #[serde(
-        rename = "HIDKeyboardModifierMappingDst",
-        serialize_with = "crate::key::serialize"
-    )]
-    dst: Key,
+#[derive(Debug, Clone)]
+pub struct Device {
+    pub kind: Kind,
+    pub vendor_id: i64,
+    pub product_id: i64,
+    pub transport: Option<String>,
+    pub class: Option<String>,
+    pub product: Option<String>,
 }
 
-/// A list of keyboard modifications.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize)]
-pub struct Mods {
-    #[serde(rename = "UserKeyMapping")]
-    mods: Vec<Mod>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kind {
+    Service,
+    Device,
 }
 
-/// A unique keyboard.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-pub struct Keyboard {
-    #[serde(skip)]
-    product_name: String,
-    #[serde(skip)]
-    vendor_name: String,
+#[derive(Serialize)]
+struct Matching {
     #[serde(rename = "VendorID")]
-    vendor_id: u64,
+    vendor_id: i64,
     #[serde(rename = "ProductID")]
-    product_id: u64,
+    product_id: i64,
 }
 
-impl Mod {
-    /// The source key.
-    pub fn src(&self) -> Key {
-        self.src
-    }
+/// List available HID devices.
+pub fn list() -> Result<Vec<Device>> {
+    let mut devices = Vec::new();
+    let output = process::Command::new("hidutil").arg("list").output_text()?;
+    let mut iter = output.lines();
 
-    /// The destination key.
-    pub fn dst(&self) -> Key {
-        self.dst
-    }
+    let mut kind = Kind::Device;
+    let mut h = "";
+    let mut h_indices: Option<Vec<Option<usize>>> = None;
 
-    /// Returns a new modification with the source and destination swapped.
-    pub fn swapped(self) -> Self {
-        Self {
-            src: self.dst,
-            dst: self.src,
+    while let Some(line) = iter.next() {
+        match &*line {
+            "" => {}
+            "Services:" | "Devices:" => {
+                kind = match line {
+                    "Services:" => Kind::Service,
+                    "Devices:" => Kind::Device,
+                    _ => unreachable!(),
+                };
+                h = iter.next().context("expected header")?;
+                h_indices = Some(
+                    split_whitespace_indices(h)
+                        .map(Some)
+                        .chain([None])
+                        .collect(),
+                );
+            }
+            line => {
+                let indices = h_indices.as_deref().unwrap().windows(2);
+                #[allow(clippy::match_ref_pats)]
+                let map: HashMap<_, _> = indices
+                    .map(|w| match w {
+                        &[Some(m), Some(n)] => (h[m..n].trim(), line[m..n].trim()),
+                        &[Some(m), None] => (h[m..].trim(), line[m..].trim()),
+                        _ => unreachable!(),
+                    })
+                    .collect();
+
+                let vendor_id = parse_hex(map["VendorID"])?;
+                let product_id = parse_hex(map["ProductID"])?;
+                let transport = parse_maybe(map["Transport"]);
+                let class = parse_maybe(map["Class"]);
+                let product = parse_maybe(map["Product"]);
+
+                devices.push(Device {
+                    kind,
+                    vendor_id,
+                    product_id,
+                    transport,
+                    class,
+                    product,
+                });
+            }
         }
     }
+
+    Ok(devices)
 }
 
-/// Recursively parse USB information, recursing into any
-/// `IORegistryEntryChildren` entries.
-fn parse_plist_recurse(value: plist::Value, result: &mut Vec<plist::Dictionary>) -> Option<()> {
-    let mut dict = value.into_dictionary()?;
-    if let Some(array) = dict.remove("IORegistryEntryChildren") {
-        for value in array.into_array()?.into_iter() {
-            parse_plist_recurse(value, result)?;
-        }
-    } else {
-        result.push(dict);
+/// Apply the modifications to the device.
+pub fn apply(device: Option<&Device>, mods: &[Mod]) -> Result<()> {
+    let mut cmd = process::Command::new("hidutil");
+    cmd.arg("property");
+
+    if let Some(d) = device {
+        let aux = Matching {
+            vendor_id: d.vendor_id,
+            product_id: d.product_id,
+        };
+        cmd.arg("--matching").arg(&serde_json::to_string(&aux)?);
     }
-    Some(())
+
+    cmd.arg("--set")
+        .arg(&serde_json::to_string(&Mods { mods })?)
+        .output_text()?;
+
+    Ok(())
 }
 
-fn parse_plist(value: plist::Value) -> Option<Vec<plist::Dictionary>> {
-    let mut result = Default::default();
-    parse_plist_recurse(value, &mut result)?;
-    Some(result)
+/// Remove all modifications from the device.
+pub fn reset(device: Option<&Device>) -> Result<()> {
+    apply(device, &[])
 }
 
-fn parse_keyboards(value: plist::Value) -> Result<Vec<Keyboard>> {
-    parse_plist(value)
-        .context("failed to parse plist")?
-        .into_iter()
-        .map(Keyboard::from_plist_dict)
-        .collect()
+fn parse_hex(s: &str) -> Result<i64> {
+    i64::from_str_radix(s.strip_prefix("0x").unwrap_or(s), 16)
+        .with_context(|| format!("failed to parse `{}` as hex", s))
 }
 
-impl Keyboard {
-    /// Parse a keyboard from a plist dictionary.
-    fn from_plist_dict(mut dict: plist::Dictionary) -> Result<Self> {
-        let product_name = dict
-            .remove("USB Product Name")
-            .context("expected `USB Product Name`")?
-            .into_string()
-            .context("expected valid `USB Product Name` value")?;
-        let vendor_name = dict
-            .remove("USB Vendor Name")
-            .context("expected `USB Vendor Name`")?
-            .into_string()
-            .context("expected valid `USB Vendor Name` value")?;
-        let vendor_id = dict
-            .remove("idVendor")
-            .context("expected `idVendor`")?
-            .as_unsigned_integer()
-            .context("expected valid `idVendor` value")?;
-        let product_id = dict
-            .remove("idProduct")
-            .context("expected `idProduct` key")?
-            .as_unsigned_integer()
-            .context("expected valid `idProduct` value")?;
-        Ok(Keyboard {
-            product_name,
-            vendor_name,
-            vendor_id,
-            product_id,
-        })
-    }
-
-    /// List all the keyboards.
-    pub fn list() -> Result<Vec<Self>> {
-        let text = process::Command::new("ioreg")
-            .args(&["-a", "-l", "-p", "IOUSB"])
-            .output_text()?;
-        let obj = plist::Value::from_reader(io::Cursor::new(text))?;
-        parse_keyboards(obj)
-    }
-
-    /// Find a keyboard matching the given predicate.
-    pub fn find<P>(predicate: P) -> Result<Option<Self>>
-    where
-        P: FnMut(&Self) -> bool,
-    {
-        Ok(Self::list()?.into_iter().find(predicate))
-    }
-
-    /// The product name of the keyboard.
-    pub fn product_name(&self) -> &str {
-        &self.product_name.trim()
-    }
-
-    /// The product name of the keyboard.
-    pub fn vendor_name(&self) -> &str {
-        &self.vendor_name.trim()
-    }
-
-    /// Apply the modifications to the keyboard.
-    pub fn apply(&mut self, mods: Mods) -> Result<()> {
-        process::Command::new("hidutil")
-            .arg("property")
-            .arg("--matching")
-            .arg(&serde_json::to_string(self)?)
-            .arg("--set")
-            .arg(&serde_json::to_string(&mods)?)
-            .output_text()?;
-        Ok(())
-    }
-
-    /// Remove all modifications from the keyboard.
-    pub fn reset(&mut self) -> Result<()> {
-        self.apply(Mods::default())
+fn parse_maybe(s: &str) -> Option<String> {
+    match s {
+        "(null)" => None,
+        _ => Some(s.to_owned()),
     }
 }
 
-/// An error produced when we fail to parse a [`Mod`] from a string.
-#[derive(Debug, Error)]
-pub enum ParseModError {
-    #[error(transparent)]
-    Key(#[from] ParseKeyError),
-
-    #[error("failed to parse mod from `{0}`")]
-    Other(String),
-}
-
-impl str::FromStr for Mod {
-    type Err = ParseModError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let err = || ParseModError::Other(s.to_owned());
-        if s.is_empty() {
-            return Err(err());
-        }
-        let mut it = s.splitn(2, ':');
-        let src = it.next().ok_or_else(err)?.parse()?;
-        let dst = it.next().ok_or_else(err)?.parse()?;
-        Ok(Self { src, dst })
-    }
-}
-
-impl iter::FromIterator<Mod> for Mods {
-    fn from_iter<I>(iter: I) -> Self
-    where
-        I: IntoIterator<Item = Mod>,
-    {
-        Mods {
-            mods: iter.into_iter().collect(),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    use std::str::FromStr;
-
-    #[test]
-    fn mod_from_str() {
-        let test_cases = &[
-            (
-                "return:A",
-                Mod {
-                    src: Key::Return,
-                    dst: Key::Char('A'),
-                },
-            ),
-            (
-                "capslock:0x64",
-                Mod {
-                    src: Key::CapsLock,
-                    dst: Key::Raw(0x64),
-                },
-            ),
-        ];
-
-        for tc in test_cases {
-            assert_eq!(Mod::from_str(tc.0).unwrap(), tc.1);
-        }
-    }
+fn split_whitespace_indices(s: &str) -> impl Iterator<Item = usize> + '_ {
+    let addr = |s: &str| s.as_ptr() as usize;
+    s.split_whitespace().map(move |sub| (addr(sub) - addr(s)))
 }
