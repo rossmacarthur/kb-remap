@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
+use anyhow::Error;
 use serde::{ser, Serializer};
-use thiserror::Error;
+
+use crate::hex;
 
 /// A key on a keyboard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -41,13 +43,8 @@ pub enum Key {
     Raw(u64),
 }
 
-/// An error produced when we fail to parse a [`Key`] from a string.
-#[derive(Debug, Error)]
-#[error("failed to parse key from `{0}`")]
-pub struct ParseKeyError(String);
-
 impl FromStr for Key {
-    type Err = ParseKeyError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let key = match s.to_lowercase().as_str() {
@@ -56,13 +53,7 @@ impl FromStr for Key {
             "⌫" | "del" | "delete" => Key::Delete,
             "⇪" | "capslock" => Key::CapsLock,
             m if m.chars().count() == 1 => Key::Char(s.chars().next().unwrap()),
-            m if m.starts_with("0x") => u64::from_str_radix(m.trim_start_matches("0x"), 16)
-                .map(Key::Raw)
-                .map_err(|_| ParseKeyError(s.to_owned()))?,
-            _ => s
-                .parse()
-                .map(Key::Raw)
-                .map_err(|_| ParseKeyError(s.to_owned()))?,
+            m => hex::parse(m).map(Key::Raw)?,
         };
         Ok(key)
     }

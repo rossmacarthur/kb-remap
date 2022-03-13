@@ -1,20 +1,27 @@
-use anyhow::{Context, Result};
-use clap::Parser;
-use kb_remap::{Device, Kind, Mod};
+mod hex;
+mod hid;
+
+use std::fmt::Write;
+
+use anyhow::{bail, Result};
+use clap::{AppSettings, Parser};
+
+use crate::hex::Hex;
+use crate::hid::{Device, Mod};
 
 #[derive(Debug, Parser)]
+#[clap(
+    disable_colored_help = true,
+    setting = AppSettings::DeriveDisplayOrder
+)]
 struct Opt {
-    /// Filter by this keyboard.
-    #[clap(short, long, value_name = "NAME")]
-    name: Option<String>,
+    /// List the available keyboards.
+    #[clap(long, conflicts_with_all = &["reset", "swap", "map"])]
+    list: bool,
 
     /// Reset the keyboard mapping.
-    #[clap(short, long, conflicts_with_all = &["list", "swap", "map"])]
+    #[clap(long, conflicts_with_all = &["list", "swap", "map"])]
     reset: bool,
-
-    /// List the available keyboards.
-    #[clap(short, long, conflicts_with_all = &["reset", "swap", "map"])]
-    list: bool,
 
     /// Swap two keys. Equivalent to two `map` options.
     #[clap(short, long, value_name = "SRC:DST")]
@@ -23,6 +30,18 @@ struct Opt {
     /// A map of source key to destination key.
     #[clap(short, long, value_name = "SRC:DST")]
     map: Vec<Mod>,
+
+    /// Select the first keyboard with this name.
+    #[clap(long, value_name = "NAME")]
+    name: Option<String>,
+
+    /// Select the first keyboard with this vendor ID.
+    #[clap(long, value_name = "VENDOR-ID")]
+    vendor_id: Option<Hex>,
+
+    /// Select the first keyboard with this product ID.
+    #[clap(long, value_name = "PRODUCT-ID")]
+    product_id: Option<Hex>,
 }
 
 impl Opt {
@@ -40,57 +59,109 @@ impl Opt {
 fn main() -> Result<()> {
     let opt = Opt::parse();
 
-    let devices = kb_remap::list()?;
+    if opt.list {
+        list()
+    } else {
+        apply(&opt)
+    }
 
-    let device = match &opt.name {
-        Some(name) => Some(
-            devices
-                .iter()
-                .find(|d| d.product.as_deref() == Some(name))
-                .with_context(|| format!("failed to find a keyboard with name `{}`", name))?,
-        ),
-        None => None,
+    // match (opt.list, opt.reset) {
+    //     (true, false) => println!("{}", tabulate(devices)),
+    //     (false, true) => {
+    //         hid::reset(d)?;
+    //     }
+    //     (false, false) => {
+    //         let mods = opt.mods();
+    //         hid::apply(d, &mods)?;
+    //         if let Some(d) = device {
+    //             println!("0x{:x}, 0x{:x}, {}", d.vendor_id, d.product_id, d.name);
+    //         }
+    //         for m in mods {
+    //             println!("  • {:?} -> {:?}", m.src(), m.dst());
+    //         }
+    //     }
+    //     (true, true) => {
+    //         unreachable!();
+    //     }
+    // }
+
+    // Ok(())
+}
+
+fn list() -> Result<()> {
+    print!("{}", tabulate(hid::list()?));
+    Ok(())
+}
+
+fn apply(opt: &Opt) -> Result<()> {
+    let mut devices = hid::list()?;
+    let total = devices.len();
+    let mods = opt.mods();
+
+    if let Some(name) = &opt.name {
+        devices.retain(|d| d.name == *name);
+        if devices.len() == 0 {
+            bail!("failed to find device matching name `{}`", name)
+        }
+    }
+
+    if let Some(Hex(vendor_id)) = opt.vendor_id {
+        devices.retain(|d| d.vendor_id == vendor_id);
+        if devices.len() == 0 {
+            bail!("failed to find device matching vendor id `{}`", vendor_id)
+        }
+    }
+
+    if let Some(Hex(product_id)) = opt.product_id {
+        devices.retain(|d| d.product_id == product_id);
+        if devices.len() == 0 {
+            bail!("failed to find device matching product id `{}`", product_id)
+        }
+    }
+
+    let d = if devices.len() == 1 {
+        Some(devices.remove(0))
+    } else if devices.len() != total {
+        bail!("multiple devices matching filter:\n{}", tabulate(devices))
+    } else {
+        None
     };
 
-    match (opt.list, opt.reset) {
-        (true, false) => tabulate(devices),
-        (false, true) => {
-            kb_remap::reset(device)?;
+    if let Some(d) = &d {
+        println!(
+            "Selected:\n  Vendor ID: 0x{:x}\n  Product ID: 0x{:x}\n  Name: {}\n",
+            d.vendor_id, d.product_id, d.name
+        );
+    }
+
+    if opt.reset {
+        hid::reset(&d)?;
+        println!("Reset all modifications");
+    } else if mods.len() > 0 {
+        hid::apply(&d, &mods)?;
+        println!("Applied the following modifications:");
+        for m in mods {
+            println!("  {:?} -> {:?}", m.src(), m.dst());
         }
-        (false, false) => {
-            let mods = opt.mods();
-            kb_remap::apply(device, &mods)?;
-            if let Some(d) = device {
-                println!(
-                    "0x{:x}, 0x{:x}, {}",
-                    d.vendor_id,
-                    d.product_id,
-                    d.product.as_deref().unwrap_or("(null)")
-                );
-            }
-            for m in mods {
-                println!("  • {:?} -> {:?}", m.src(), m.dst());
-            }
-        }
-        (true, true) => {
-            unreachable!();
-        }
+    } else {
+        println!("No modifications to apply");
     }
 
     Ok(())
 }
 
-fn tabulate(devices: Vec<Device>) {
-    println!("Vendor ID  Product ID  Name");
-    println!("---------  ----------  ----------------------------------");
+fn tabulate(devices: Vec<Device>) -> String {
+    let mut s = String::from("Vendor ID  Product ID  Name\n");
+    s.push_str("---------  ----------  ----------------------------------\n");
     for d in devices {
-        if d.kind == Kind::Device && d.product.is_some() {
-            println!(
-                "{:<9}  {:<10}  {}",
-                format!("0x{:x}", d.vendor_id),
-                format!("0x{:x}", d.product_id),
-                d.product.unwrap(),
-            );
-        }
+        writeln!(
+            s,
+            "{:<9}  {:<10}  {}",
+            format!("0x{:x}", d.vendor_id),
+            format!("0x{:x}", d.product_id),
+            d.name,
+        )
+        .unwrap();
     }
+    s
 }

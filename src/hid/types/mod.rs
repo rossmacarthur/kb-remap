@@ -1,9 +1,11 @@
+mod key;
+
 use std::str;
 
+use anyhow::{anyhow, bail, Error};
 use serde::Serialize;
-use thiserror::Error;
 
-use crate::key::{Key, ParseKeyError};
+pub use self::key::Key;
 
 /// A list of keyboard modifications.
 #[derive(Serialize)]
@@ -17,12 +19,12 @@ pub struct Mods<'a> {
 pub struct Mod {
     #[serde(
         rename = "HIDKeyboardModifierMappingSrc",
-        serialize_with = "crate::key::serialize"
+        serialize_with = "self::key::serialize"
     )]
     src: Key,
     #[serde(
         rename = "HIDKeyboardModifierMappingDst",
-        serialize_with = "crate::key::serialize"
+        serialize_with = "self::key::serialize"
     )]
     dst: Key,
 }
@@ -47,27 +49,18 @@ impl Mod {
     }
 }
 
-/// An error produced when we fail to parse a [`Mod`] from a string.
-#[derive(Debug, Error)]
-pub enum ParseModError {
-    #[error(transparent)]
-    Key(#[from] ParseKeyError),
-
-    #[error("failed to parse mod from `{0}`")]
-    Other(String),
-}
-
 impl str::FromStr for Mod {
-    type Err = ParseModError;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let err = || ParseModError::Other(s.to_owned());
         if s.is_empty() {
-            return Err(err());
+            bail!("empty")
         }
-        let mut it = s.splitn(2, ':');
-        let src = it.next().ok_or_else(err)?.parse()?;
-        let dst = it.next().ok_or_else(err)?.parse()?;
+        let (src, dst) = s
+            .split_once(":")
+            .ok_or_else(|| anyhow!("does not contain a colon"))?;
+        let src = src.parse()?;
+        let dst = dst.parse()?;
         Ok(Self { src, dst })
     }
 }

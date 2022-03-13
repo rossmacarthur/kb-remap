@@ -1,6 +1,5 @@
-mod command;
-mod key;
-mod mods;
+mod cmd;
+mod types;
 
 use std::collections::HashMap;
 use std::process;
@@ -8,23 +7,20 @@ use std::process;
 use anyhow::{Context, Result};
 use serde::Serialize;
 
-use crate::command::CommandExt;
-pub use crate::key::{Key, ParseKeyError};
-use crate::mods::Mods;
-pub use crate::mods::{Mod, ParseModError};
+use crate::hex;
 
-#[derive(Debug, Clone)]
+use self::cmd::CommandExt;
+pub use self::types::{Key, Mod, Mods};
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Device {
-    pub kind: Kind,
-    pub vendor_id: i64,
-    pub product_id: i64,
-    pub transport: Option<String>,
-    pub class: Option<String>,
-    pub product: Option<String>,
+    pub vendor_id: u64,
+    pub product_id: u64,
+    pub name: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Kind {
+enum Kind {
     Service,
     Device,
 }
@@ -32,9 +28,9 @@ pub enum Kind {
 #[derive(Serialize)]
 struct Matching {
     #[serde(rename = "VendorID")]
-    vendor_id: i64,
+    vendor_id: u64,
     #[serde(rename = "ProductID")]
-    product_id: i64,
+    product_id: u64,
 }
 
 /// List available HID devices.
@@ -65,6 +61,10 @@ pub fn list() -> Result<Vec<Device>> {
                 );
             }
             line => {
+                if kind != Kind::Device {
+                    continue;
+                }
+
                 let indices = h_indices.as_deref().unwrap().windows(2);
                 #[allow(clippy::match_ref_pats)]
                 let map: HashMap<_, _> = indices
@@ -75,29 +75,30 @@ pub fn list() -> Result<Vec<Device>> {
                     })
                     .collect();
 
-                let vendor_id = parse_hex(map["VendorID"])?;
-                let product_id = parse_hex(map["ProductID"])?;
-                let transport = parse_maybe(map["Transport"]);
-                let class = parse_maybe(map["Class"]);
-                let product = parse_maybe(map["Product"]);
+                let name = match parse_maybe(map["Product"]) {
+                    Some(name) => name,
+                    None => continue,
+                };
+                let vendor_id = hex::parse(map["VendorID"])?;
+                let product_id = hex::parse(map["ProductID"])?;
 
                 devices.push(Device {
-                    kind,
                     vendor_id,
                     product_id,
-                    transport,
-                    class,
-                    product,
+                    name,
                 });
             }
         }
     }
 
+    devices.sort();
+    devices.dedup();
+
     Ok(devices)
 }
 
 /// Apply the modifications to the device.
-pub fn apply(device: Option<&Device>, mods: &[Mod]) -> Result<()> {
+pub fn apply(device: &Option<Device>, mods: &[Mod]) -> Result<()> {
     let mut cmd = process::Command::new("hidutil");
     cmd.arg("property");
 
@@ -117,13 +118,8 @@ pub fn apply(device: Option<&Device>, mods: &[Mod]) -> Result<()> {
 }
 
 /// Remove all modifications from the device.
-pub fn reset(device: Option<&Device>) -> Result<()> {
+pub fn reset(device: &Option<Device>) -> Result<()> {
     apply(device, &[])
-}
-
-fn parse_hex(s: &str) -> Result<i64> {
-    i64::from_str_radix(s.strip_prefix("0x").unwrap_or(s), 16)
-        .with_context(|| format!("failed to parse `{}` as hex", s))
 }
 
 fn parse_maybe(s: &str) -> Option<String> {
