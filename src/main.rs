@@ -16,12 +16,16 @@ use crate::hid::{Device, Mod};
 )]
 struct Opt {
     /// List the available keyboards.
-    #[clap(long, conflicts_with_all = &["reset", "swap", "map"])]
+    #[clap(long, conflicts_with_all = &["reset", "dump", "swap", "map"])]
     list: bool,
 
     /// Reset the keyboard mapping.
     #[clap(long, conflicts_with_all = &["list", "swap", "map"])]
     reset: bool,
+
+    /// Dump the raw hidutil command that would be executed.
+    #[clap(long)]
+    dump: bool,
 
     /// Swap two keys. Equivalent to two `map` options.
     #[clap(short, long, value_name = "SRC:DST")]
@@ -127,24 +131,32 @@ fn apply(opt: &Opt) -> Result<()> {
         None
     };
 
-    if let Some(d) = &d {
-        println!(
-            "Selected:\n  Vendor ID: 0x{:x}\n  Product ID: 0x{:x}\n  Name: {}\n",
-            d.vendor_id, d.product_id, d.name
-        );
-    }
-
-    if opt.reset {
-        hid::reset(&d)?;
-        println!("Reset all modifications");
-    } else if mods.len() > 0 {
-        hid::apply(&d, &mods)?;
-        println!("Applied the following modifications:");
-        for m in mods {
-            println!("  {:?} -> {:?}", m.src(), m.dst());
+    if opt.dump {
+        if opt.reset {
+            println!("{}", hid::dump(&d, &[])?);
+        } else if mods.len() > 0 {
+            println!("{}", hid::dump(&d, &mods)?);
         }
     } else {
-        println!("No modifications to apply");
+        if let Some(d) = &d {
+            println!(
+                "Selected:\n  Vendor ID: 0x{:x}\n  Product ID: 0x{:x}\n  Name: {}\n",
+                d.vendor_id, d.product_id, d.name
+            );
+        }
+
+        if opt.reset {
+            hid::apply(&d, &[])?;
+            println!("Reset all modifications");
+        } else if mods.len() > 0 {
+            hid::apply(&d, &mods)?;
+            println!("Applied the following modifications:");
+            for m in mods {
+                println!("  {:?} -> {:?}", m.src(), m.dst());
+            }
+        } else {
+            println!("No modifications to apply");
+        }
     }
 
     Ok(())

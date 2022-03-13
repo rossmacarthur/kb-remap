@@ -117,9 +117,25 @@ pub fn apply(device: &Option<Device>, mods: &[Mod]) -> Result<()> {
     Ok(())
 }
 
-/// Remove all modifications from the device.
-pub fn reset(device: &Option<Device>) -> Result<()> {
-    apply(device, &[])
+/// Dump the raw hidutil modification command.
+pub fn dump(device: &Option<Device>, mods: &[Mod]) -> Result<String> {
+    let mut s = String::from("hidutil property");
+
+    if let Some(d) = device {
+        let aux = Matching {
+            vendor_id: d.vendor_id,
+            product_id: d.product_id,
+        };
+        s.push_str(" \\\n    --matching '");
+        s.push_str(&serde_json::to_string(&aux)?);
+        s.push_str("'");
+    }
+
+    s.push_str(" \\\n    --set '");
+    s.push_str(&serde_json::to_string(&Mods { mods })?);
+    s.push_str("'");
+
+    Ok(s)
 }
 
 fn parse_maybe(s: &str) -> Option<String> {
