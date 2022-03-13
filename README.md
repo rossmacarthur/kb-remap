@@ -19,22 +19,13 @@ $ kb-remap --list
 ```text
 Vendor ID  Product ID  Name
 ---------  ----------  ----------------------------------
-0x5ac      0x342       Apple Internal Keyboard / Trackpad
-0xc45      0x7692      USB Keyboard
-0x5ac      0x342       Apple Internal Keyboard / Trackpad
-0x1050     0x407       YubiKey OTP+FIDO+CCID
-0x4c       0x269       Magic Mouse
-0x5ac      0x342       Apple Internal Keyboard / Trackpad
-0x1050     0x407       YubiKey OTP+FIDO+CCID
+0x0        0x0         BTM
+0x0        0x0         Headset
 0x4c       0x269       Magic Mouse
 0x5ac      0x342       Apple Internal Keyboard / Trackpad
 0x5ac      0x342       Keyboard Backlight
-0x4c       0x269       Magic Mouse
-0x0        0x0         BTM
-0x5ac      0x342       Apple Internal Keyboard / Trackpad
 0xc45      0x7692      USB Keyboard
-0x4c       0x269       Magic Mouse
-0x0        0x0         Headset
+0x1050     0x407       YubiKey OTP+FIDO+CCID
 ```
 
 Usually it's pretty simple to pick out which devices are keyboards. Using the
@@ -42,9 +33,7 @@ name listed above as `--name` you can remap any key you want using the `--map`
 or `--swap` options. For example the following remaps capslock to backspace and
 swaps § (section) and ` (backtick) on a the internal macOS keyboard.
 ```sh
-$ kb-remap \
-  --name "Apple Internal Keyboard / Trackpad" \
-  --map capslock:delete --swap '0x64:`'
+$ kb-remap --name "Apple Internal Keyboard / Trackpad" --map capslock:delete --swap '0x64:`'
 ```
 
 You can reset the mapping using:
@@ -64,6 +53,19 @@ There are three ways to specify keys:
 - **Number:** any key can be specified by using the USB usage ID in decimal or
   hex. For example: Z has a usage ID of "29", which can also be specified as
   "0x1d".
+
+If you want you can inspect the raw `hidutil` command that would be run for
+a particular command using the `--dump` option.
+```
+$ kb-remap --name "Apple Internal Keyboard / Trackpad" --map capslock:delete --dump
+```
+
+Would output the following:
+```
+hidutil property \
+    --matching '{"VendorID":1452,"ProductID":834}' \
+    --set '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":30064771129,"HIDKeyboardModifierMappingDst":30064771114}]}'
+```
 
 ## 🤔 Why? How?
 
