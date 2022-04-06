@@ -1,5 +1,8 @@
 # kb-remap
 
+[![Crates.io Version](https://img.shields.io/crates/v/kb-remap.svg)](https://crates.io/crates/kb-remap)
+[![Build Status](https://img.shields.io/github/workflow/status/rossmacarthur/kb-remap/build/trunk)](https://github.com/rossmacarthur/kb-remap/actions?query=workflow%3Abuild)
+
 Tool to assist remapping macOS keyboard keys.
 
 ## 🚀 Getting started
