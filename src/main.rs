@@ -1,8 +1,6 @@
 mod hex;
 mod hid;
 
-use std::fmt::Write;
-
 use anyhow::{bail, Result};
 use clap::{AppSettings, Parser};
 
@@ -84,21 +82,21 @@ fn apply(opt: &Opt) -> Result<()> {
 
     if let Some(name) = &opt.name {
         devices.retain(|d| d.name == *name);
-        if devices.len() == 0 {
+        if devices.is_empty() {
             bail!("failed to find device matching name `{}`", name)
         }
     }
 
     if let Some(Hex(vendor_id)) = opt.vendor_id {
         devices.retain(|d| d.vendor_id == vendor_id);
-        if devices.len() == 0 {
+        if devices.is_empty() {
             bail!("failed to find device matching vendor id `{}`", vendor_id)
         }
     }
 
     if let Some(Hex(product_id)) = opt.product_id {
         devices.retain(|d| d.product_id == product_id);
-        if devices.len() == 0 {
+        if devices.is_empty() {
             bail!("failed to find device matching product id `{}`", product_id)
         }
     }
@@ -114,7 +112,7 @@ fn apply(opt: &Opt) -> Result<()> {
     if opt.dump {
         if opt.reset {
             println!("{}", hid::dump(&d, &[])?);
-        } else if mappings.len() > 0 {
+        } else if !mappings.is_empty() {
             println!("{}", hid::dump(&d, &mappings)?);
         }
     } else {
@@ -128,7 +126,7 @@ fn apply(opt: &Opt) -> Result<()> {
         if opt.reset {
             hid::apply(&d, &[])?;
             println!("Reset all modifications");
-        } else if mappings.len() > 0 {
+        } else if !mappings.is_empty() {
             hid::apply(&d, &mappings)?;
             println!("Applied the following modifications:");
             for m in mappings {
@@ -142,18 +140,17 @@ fn apply(opt: &Opt) -> Result<()> {
     Ok(())
 }
 
+#[allow(clippy::format_in_format_args)]
 fn tabulate(devices: Vec<Device>) -> String {
     let mut s = String::from("Vendor ID  Product ID  Name\n");
     s.push_str("---------  ----------  ----------------------------------\n");
     for d in devices {
-        writeln!(
-            s,
+        s.push_str(&format!(
             "{:<9}  {:<10}  {}",
             format!("0x{:x}", d.vendor_id),
             format!("0x{:x}", d.product_id),
             d.name,
-        )
-        .unwrap();
+        ));
     }
     s
 }

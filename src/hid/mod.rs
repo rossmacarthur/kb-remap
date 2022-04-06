@@ -118,6 +118,7 @@ pub fn apply(device: &Option<Device>, mappings: &[Mapping]) -> Result<()> {
 }
 
 /// Dump the raw hidutil modification command.
+#[allow(clippy::single_char_add_str)]
 pub fn dump(device: &Option<Device>, mappings: &[Mapping]) -> Result<String> {
     let mut s = String::from("hidutil property");
 

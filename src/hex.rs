@@ -13,6 +13,7 @@ impl FromStr for Hex {
     }
 }
 
+#[allow(clippy::from_str_radix_10)]
 pub fn parse(s: &str) -> Result<u64> {
     match s.strip_prefix("0x") {
         Some(h) => u64::from_str_radix(h, 16)

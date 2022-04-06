@@ -50,7 +50,7 @@ impl std::str::FromStr for Mod {
             bail!("empty")
         }
         let (src, dst) = s
-            .split_once(":")
+            .split_once(':')
             .ok_or_else(|| anyhow!("does not contain a colon"))?;
 
         enum K {
