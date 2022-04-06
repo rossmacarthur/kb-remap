@@ -10,7 +10,7 @@ use serde::Serialize;
 use crate::hex;
 
 use self::cmd::CommandExt;
-pub use self::types::{Key, Mod, Mods};
+pub use self::types::{Key, Mapping, Mod, ModList};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Device {
@@ -98,7 +98,7 @@ pub fn list() -> Result<Vec<Device>> {
 }
 
 /// Apply the modifications to the device.
-pub fn apply(device: &Option<Device>, mods: &[Mod]) -> Result<()> {
+pub fn apply(device: &Option<Device>, mappings: &[Mapping]) -> Result<()> {
     let mut cmd = process::Command::new("hidutil");
     cmd.arg("property");
 
@@ -111,14 +111,14 @@ pub fn apply(device: &Option<Device>, mods: &[Mod]) -> Result<()> {
     }
 
     cmd.arg("--set")
-        .arg(&serde_json::to_string(&Mods { mods })?)
+        .arg(&serde_json::to_string(&ModList { mappings })?)
         .output_text()?;
 
     Ok(())
 }
 
 /// Dump the raw hidutil modification command.
-pub fn dump(device: &Option<Device>, mods: &[Mod]) -> Result<String> {
+pub fn dump(device: &Option<Device>, mappings: &[Mapping]) -> Result<String> {
     let mut s = String::from("hidutil property");
 
     if let Some(d) = device {
@@ -132,7 +132,7 @@ pub fn dump(device: &Option<Device>, mods: &[Mod]) -> Result<String> {
     }
 
     s.push_str(" \\\n    --set '");
-    s.push_str(&serde_json::to_string(&Mods { mods })?);
+    s.push_str(&serde_json::to_string(&ModList { mappings })?);
     s.push_str("'");
 
     Ok(s)

@@ -11,15 +11,28 @@ use crate::hex;
 pub enum Key {
     /// ⏎
     Return,
-
     /// ESC
     Escape,
-
     /// ⌫
     Delete,
-
     /// ⇪
     CapsLock,
+    /// Left ⌃
+    LeftControl,
+    /// Left ⇧
+    LeftShift,
+    /// Left ⌥
+    LeftOption,
+    /// Left ⌘
+    LeftCommand,
+    /// Right ⌃
+    RightControl,
+    /// Right ⇧
+    RightShift,
+    /// Right ⌥
+    RightOption,
+    /// Right ⌘
+    RightCommand,
 
     /// A character on the keyboard.
     ///
@@ -48,10 +61,18 @@ impl FromStr for Key {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let key = match s.to_lowercase().as_str() {
-            "⏎" | "return" => Key::Return,
-            "esc" | "escape" => Key::Escape,
-            "⌫" | "del" | "delete" => Key::Delete,
-            "⇪" | "capslock" => Key::CapsLock,
+            "return" => Key::Return,
+            "escape" => Key::Escape,
+            "delete" => Key::Delete,
+            "capslock" => Key::CapsLock,
+            "lcontrol" => Key::LeftControl,
+            "rcontrol" => Key::RightControl,
+            "lshift" => Key::LeftShift,
+            "rshift" => Key::RightShift,
+            "loption" => Key::LeftOption,
+            "roption" => Key::RightOption,
+            "lcommand" => Key::LeftCommand,
+            "rcommand" => Key::RightCommand,
             m if m.chars().count() == 1 => Key::Char(s.chars().next().unwrap()),
             m => hex::parse(m).map(Key::Raw)?,
         };
@@ -62,13 +83,21 @@ impl FromStr for Key {
 impl Key {
     /// Returns the usage ID for this key.
     pub(crate) fn usage_id(&self) -> Option<u64> {
+        // https://developer.apple.com/library/archive/technotes/tn2450/_index.html
         let usage_id = match self {
             Self::Return => 0x28,
             Self::Escape => 0x29,
             Self::Delete => 0x2a,
             Self::CapsLock => 0x39,
+            Self::LeftControl => 0xe0,
+            Self::LeftShift => 0xe1,
+            Self::LeftOption => 0xe2,
+            Self::LeftCommand => 0xe3,
+            Self::RightControl => 0xe4,
+            Self::RightShift => 0xe5,
+            Self::RightOption => 0xe6,
+            Self::RightCommand => 0xe7,
             Self::Char(c) => match c {
-                // See https://gist.github.com/MightyPork/6da26e382a7ad91b5496ee55fdc73db2
                 'a' | 'A' => 0x04,
                 'b' | 'B' => 0x05,
                 'c' | 'C' => 0x06,
@@ -145,8 +174,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use std::str::FromStr;
 
     #[test]
     fn key_from_str() {

@@ -7,7 +7,7 @@ use anyhow::{bail, Result};
 use clap::{AppSettings, Parser};
 
 use crate::hex::Hex;
-use crate::hid::{Device, Mod};
+use crate::hid::{Device, Mapping, Mod};
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -49,47 +49,27 @@ struct Opt {
 }
 
 impl Opt {
-    fn mods(&self) -> Vec<Mod> {
-        let mut mods = Vec::new();
-        for m in self.swap.iter().copied() {
-            mods.push(m);
-            mods.push(m.swapped());
-        }
-        mods.extend(&self.map);
-        mods
+    /// Flatten all the mappings into a single list.
+    fn mappings(&self) -> Vec<Mapping> {
+        self.swap
+            .iter()
+            .flat_map(|Mod { mappings }| mappings.iter().flat_map(|m| [*m, m.swapped()]))
+            .chain(
+                self.map
+                    .iter()
+                    .flat_map(|Mod { mappings }| mappings.iter().cloned()),
+            )
+            .collect()
     }
 }
 
 fn main() -> Result<()> {
     let opt = Opt::parse();
-
     if opt.list {
         list()
     } else {
         apply(&opt)
     }
-
-    // match (opt.list, opt.reset) {
-    //     (true, false) => println!("{}", tabulate(devices)),
-    //     (false, true) => {
-    //         hid::reset(d)?;
-    //     }
-    //     (false, false) => {
-    //         let mods = opt.mods();
-    //         hid::apply(d, &mods)?;
-    //         if let Some(d) = device {
-    //             println!("0x{:x}, 0x{:x}, {}", d.vendor_id, d.product_id, d.name);
-    //         }
-    //         for m in mods {
-    //             println!("  • {:?} -> {:?}", m.src(), m.dst());
-    //         }
-    //     }
-    //     (true, true) => {
-    //         unreachable!();
-    //     }
-    // }
-
-    // Ok(())
 }
 
 fn list() -> Result<()> {
@@ -100,7 +80,7 @@ fn list() -> Result<()> {
 fn apply(opt: &Opt) -> Result<()> {
     let mut devices = hid::list()?;
     let total = devices.len();
-    let mods = opt.mods();
+    let mappings = opt.mappings();
 
     if let Some(name) = &opt.name {
         devices.retain(|d| d.name == *name);
@@ -134,8 +114,8 @@ fn apply(opt: &Opt) -> Result<()> {
     if opt.dump {
         if opt.reset {
             println!("{}", hid::dump(&d, &[])?);
-        } else if mods.len() > 0 {
-            println!("{}", hid::dump(&d, &mods)?);
+        } else if mappings.len() > 0 {
+            println!("{}", hid::dump(&d, &mappings)?);
         }
     } else {
         if let Some(d) = &d {
@@ -148,10 +128,10 @@ fn apply(opt: &Opt) -> Result<()> {
         if opt.reset {
             hid::apply(&d, &[])?;
             println!("Reset all modifications");
-        } else if mods.len() > 0 {
-            hid::apply(&d, &mods)?;
+        } else if mappings.len() > 0 {
+            hid::apply(&d, &mappings)?;
             println!("Applied the following modifications:");
-            for m in mods {
+            for m in mappings {
                 println!("  {:?} -> {:?}", m.src(), m.dst());
             }
         } else {
