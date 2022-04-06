@@ -41,19 +41,6 @@ You can reset the mapping using:
 $ kb-remap --name "Apple Internal Keyboard / Trackpad" --reset
 ```
 
-The `--map` and `--swap` options both expect the source and destination keys to
-be specified and separated by a ":" (colon).
-
-There are three ways to specify keys:
-
-- **Name:** some keys you can specify using their name. For example the Return
-  key "⏎" can be specified as "return". These are added on a convenience basis.
-- **Character:** most typeable keys can be specified using their character. For
-  example: the A key can be specified using "A" or "a".
-- **Number:** any key can be specified by using the USB usage ID in decimal or
-  hex. For example: Z has a usage ID of "29", which can also be specified as
-  "0x1d".
-
 If you want you can inspect the raw `hidutil` command that would be run for
 a particular command using the `--dump` option.
 ```
@@ -66,6 +53,54 @@ hidutil property \
     --matching '{"VendorID":1452,"ProductID":834}' \
     --set '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":30064771129,"HIDKeyboardModifierMappingDst":30064771114}]}'
 ```
+
+## Specifying keys
+
+The `--map` and `--swap` options both expect the source and destination keys to
+be specified and separated by a ":" (colon).
+
+There are three ways to specify keys:
+
+### Name
+
+Some keys you can specify using their name. For example the Return (Enter) key
+"⏎" can be specified as "return". These are added on a convenience basis.
+
+| Key                | Code       | USB Usage ID |
+| ------------------ | ---------- | ------------ |
+| Return (Enter)     | `return`   | 0x28         |
+| Escape             | `escape`   | 0x29         |
+| Delete (Backspace) | `delete`   | 0x2A         |
+| Caps Lock          | `capslock` | 0x39         |
+| Left Control       | `lcontrol` | 0xE0         |
+| Left Shift         | `lshift`   | 0xE1         |
+| Left Option        | `loption`  | 0xE2         |
+| Left Command       | `lcommand` | 0xE3         |
+| Right Control      | `rcontrol` | 0xE4         |
+| Right Shift        | `rshift`   | 0xE5         |
+| Right Option       | `roption`  | 0xE6         |
+| Right Command      | `rcommand` | 0xE7         |
+
+Additionally, the following special names are available and map multiple keys
+if they are used.
+
+| Keys                 | Code      |
+| -------------------- | --------- |
+| Left & Right Control | `control` |
+| Left & Right Shift   | `shift`   |
+| Left & Right Option  | `option`  |
+| Left & Right Command | `command` |
+
+### Character
+
+Most typeable keys can be specified using their character. For example: the A
+key can be specified using "A" or "a". The USB usage ID used will the one that
+the key corresponds to on a US keyboard.
+
+### Number
+
+Any key can be specified by using the USB usage ID in decimal or hex. For
+example: Z has a usage ID of "29", which can also be specified as "0x1d".
 
 ## 🤔 Why? How?
 
