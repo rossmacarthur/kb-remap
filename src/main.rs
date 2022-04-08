@@ -1,6 +1,8 @@
 mod hex;
 mod hid;
 
+use std::fmt::Write;
+
 use anyhow::{bail, Result};
 use clap::{AppSettings, Parser};
 
@@ -140,17 +142,16 @@ fn apply(opt: &Opt) -> Result<()> {
     Ok(())
 }
 
-#[allow(clippy::format_in_format_args)]
 fn tabulate(devices: Vec<Device>) -> String {
     let mut s = String::from("Vendor ID  Product ID  Name\n");
     s.push_str("---------  ----------  ----------------------------------\n");
     for d in devices {
-        s.push_str(&format!(
-            "{:<9}  {:<10}  {}",
-            format!("0x{:x}", d.vendor_id),
-            format!("0x{:x}", d.product_id),
-            d.name,
-        ));
+        writeln!(
+            s,
+            "{:<#9x}  {:<#10x}  {}",
+            d.vendor_id, d.product_id, d.name,
+        )
+        .unwrap();
     }
     s
 }
