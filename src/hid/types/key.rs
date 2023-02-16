@@ -48,7 +48,13 @@ pub enum Key {
     /// ```
     Char(char),
 
-    /// Any key by its usage ID.
+    /// Any mouse input by its usage ID.
+    ///
+    /// This can be used to represent any key that is not enumerated in this
+    /// type.
+    Mouse(u64),
+
+    /// Any keyboard input by its usage ID.
     ///
     /// This can be used to represent any key that is not enumerated in this
     /// type. See USB HID Usage Tables Specification, Section 10 Keyboard/Keypad
@@ -74,6 +80,7 @@ impl FromStr for Key {
             "lcommand" => Key::LeftCommand,
             "rcommand" => Key::RightCommand,
             m if m.chars().count() == 1 => Key::Char(s.chars().next().unwrap()),
+            m if m.starts_with("m") => hex::parse(&m[1..]).map(Key::Mouse)?,
             m => hex::parse(m).map(Key::Raw)?,
         };
         Ok(key)
@@ -81,6 +88,14 @@ impl FromStr for Key {
 }
 
 impl Key {
+    /// Returns the usage page ID for this key.
+    pub(crate) fn usage_page_id(&self) -> u64 {
+        match self {
+            Key::Mouse(_) => 0x9_0000_0000,
+            _ => 0x7_0000_0000,
+        }
+    }
+
     /// Returns the usage ID for this key.
     pub(crate) fn usage_id(&self) -> Option<u64> {
         // https://developer.apple.com/library/archive/technotes/tn2450/_index.html
@@ -152,6 +167,7 @@ impl Key {
                 '/' | '?' => 0x38,
                 _ => return None,
             },
+            Self::Mouse(raw) => *raw,
             Self::Raw(raw) => *raw,
         };
         Some(usage_id)
@@ -168,7 +184,8 @@ where
             key
         ))
     })?;
-    serializer.serialize_u64(usage_id | 0x700000000)
+    let usage_page_id = key.usage_page_id();
+    serializer.serialize_u64(usage_id | usage_page_id)
 }
 
 #[cfg(test)]
