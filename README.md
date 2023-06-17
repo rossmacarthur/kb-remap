@@ -1,7 +1,7 @@
 # kb-remap
 
 [![Crates.io Version](https://badgers.space/crates/version/kb-remap)](https://crates.io/crates/kb-remap)
-[![Build Status](https://badgers.space/github/checks/rossmacarthur/kb-remap/trunk)](https://github.com/rossmacarthur/kb-remap/actions/workflows/build.yaml)
+[![Build Status](https://badgers.space/github/checks/rossmacarthur/kb-remap/trunk?label=build)](https://github.com/rossmacarthur/kb-remap/actions/workflows/build.yaml)
 
 Tool to assist remapping macOS keyboard keys.
 

@@ -14,13 +14,12 @@ jobs:
         toolchain: [stable, beta, nightly]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Setup Rust
-      run: |
-        rustup set profile default
-        rustup toolchain install ${{ matrix.toolchain }}
-        rustup override set ${{ matrix.toolchain }}
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ matrix.toolchain }}
+        components: clippy, rustfmt
 
     - name: Rustfmt
       run: cargo fmt -- --check
@@ -38,20 +37,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Calculate version from tag
         id: version
-        run: echo "::set-output name=value::${GITHUB_REF#refs/tags/}"
+        run: echo "value=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
 
-      - name: Check tag against package versions
+      - name: Check tag against package version
         run: grep '^version = "${{ steps.version.outputs.value }}"$' Cargo.toml
 
-      - name: Setup Rust
-        run: |
-          rustup set profile minimal
-          rustup toolchain install stable
-          rustup override set stable
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Publish
         env:
