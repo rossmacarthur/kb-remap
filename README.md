@@ -1,7 +1,7 @@
 # kb-remap
 
-[![Crates.io Version](https://img.shields.io/crates/v/kb-remap.svg)](https://crates.io/crates/kb-remap)
-[![Build Status](https://img.shields.io/github/workflow/status/rossmacarthur/kb-remap/build/trunk)](https://github.com/rossmacarthur/kb-remap/actions?query=workflow%3Abuild)
+[![Crates.io Version](https://badgers.space/crates/version/kb-remap)](https://crates.io/crates/kb-remap)
+[![Build Status](https://badgers.space/github/checks/rossmacarthur/kb-remap/trunk)](https://github.com/rossmacarthur/kb-remap/actions/workflows/build.yaml)
 
 Tool to assist remapping macOS keyboard keys.
 
@@ -69,20 +69,23 @@ There are three ways to specify keys:
 Some keys you can specify using their name. For example the Return (Enter) key
 "⏎" can be specified as "return". These are added on a convenience basis.
 
-| Key                | Code       | USB Usage ID |
-| ------------------ | ---------- | ------------ |
-| Return (Enter)     | `return`   | 0x28         |
-| Escape             | `escape`   | 0x29         |
-| Delete (Backspace) | `delete`   | 0x2A         |
-| Caps Lock          | `capslock` | 0x39         |
-| Left Control       | `lcontrol` | 0xE0         |
-| Left Shift         | `lshift`   | 0xE1         |
-| Left Option        | `loption`  | 0xE2         |
-| Left Command       | `lcommand` | 0xE3         |
-| Right Control      | `rcontrol` | 0xE4         |
-| Right Shift        | `rshift`   | 0xE5         |
-| Right Option       | `roption`  | 0xE6         |
-| Right Command      | `rcommand` | 0xE7         |
+| Key                | Code                    | USB Usage ID |
+| ------------------ | ----------------------- | ------------ |
+| Return (Enter)     | `return`                | 0x28         |
+| Escape             | `escape`                | 0x29         |
+| Delete (Backspace) | `delete`                | 0x2A         |
+| Caps Lock          | `capslock`              | 0x39         |
+| Left Control       | `lcontrol`              | 0xE0         |
+| Left Shift         | `lshift`                | 0xE1         |
+| Left Option        | `loption`               | 0xE2         |
+| Left Command       | `lcommand`              | 0xE3         |
+| Right Control      | `rcontrol`              | 0xE4         |
+| Right Shift        | `rshift`                | 0xE5         |
+| Right Option       | `roption`               | 0xE6         |
+| Right Command      | `rcommand`              | 0xE7         |
+| Function           | `fn`                    |              |
+| F1, F2, ..., F12   | `f1`, `f2`, ..., `f12`  | 0x3A -> 0x45 |
+| F13, F14, ..., F24 | `f13`, `f4`, ..., `f24` | 0x68 -> 0x73 |
 
 Additionally, the following special names are available and map multiple keys
 if they are used.

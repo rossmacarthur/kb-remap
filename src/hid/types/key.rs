@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use anyhow::Error;
+use anyhow::{bail, Error};
 use serde::{ser, Serializer};
 
 use crate::hex;
@@ -33,6 +33,8 @@ pub enum Key {
     RightOption,
     /// Right ⌘
     RightCommand,
+    /// fn
+    Fn,
 
     /// A character on the keyboard.
     ///
@@ -47,6 +49,9 @@ pub enum Key {
     /// let percent = Key::Char('%');
     /// ```
     Char(char),
+
+    /// A function key e.g. F1, F2, F3, etc.
+    F(u8),
 
     /// Any key by its usage ID.
     ///
@@ -73,14 +78,33 @@ impl FromStr for Key {
             "roption" => Key::RightOption,
             "lcommand" => Key::LeftCommand,
             "rcommand" => Key::RightCommand,
-            m if m.chars().count() == 1 => Key::Char(s.chars().next().unwrap()),
-            m => hex::parse(m).map(Key::Raw)?,
+            "fn" => Key::Fn,
+            m => {
+                if m.chars().count() == 1 {
+                    return Ok(Key::Char(s.chars().next().unwrap()));
+                } else if let Some(f) = m.strip_prefix('f') {
+                    let num = f.parse::<u8>()?;
+                    if !(1..=24).contains(&num) {
+                        bail!("invalid function key number: {}", num);
+                    }
+                    return Ok(Key::F(num));
+                }
+                hex::parse(m).map(Key::Raw)?
+            }
         };
         Ok(key)
     }
 }
 
 impl Key {
+    /// Returns the usage page ID for this key.
+    pub(crate) fn usage_page_id(&self) -> u64 {
+        match self {
+            Key::Fn => 0xff00000000,
+            _ => 0x7_0000_0000,
+        }
+    }
+
     /// Returns the usage ID for this key.
     pub(crate) fn usage_id(&self) -> Option<u64> {
         // https://developer.apple.com/library/archive/technotes/tn2450/_index.html
@@ -97,6 +121,7 @@ impl Key {
             Self::RightShift => 0xe5,
             Self::RightOption => 0xe6,
             Self::RightCommand => 0xe7,
+            Self::Fn => 0x03,
             Self::Char(c) => match c {
                 'a' | 'A' => 0x04,
                 'b' | 'B' => 0x05,
@@ -152,6 +177,33 @@ impl Key {
                 '/' | '?' => 0x38,
                 _ => return None,
             },
+            &Self::F(num) => match num {
+                1 => 0x3a,
+                2 => 0x3b,
+                3 => 0x3c,
+                4 => 0x3d,
+                5 => 0x3e,
+                6 => 0x3f,
+                7 => 0x40,
+                8 => 0x41,
+                9 => 0x42,
+                10 => 0x43,
+                11 => 0x44,
+                12 => 0x45,
+                13 => 0x68,
+                14 => 0x69,
+                15 => 0x6A,
+                16 => 0x6B,
+                17 => 0x6C,
+                18 => 0x6D,
+                19 => 0x6E,
+                20 => 0x6F,
+                21 => 0x70,
+                22 => 0x71,
+                23 => 0x72,
+                24 => 0x73,
+                _ => unreachable!(),
+            },
             Self::Raw(raw) => *raw,
         };
         Some(usage_id)
@@ -162,13 +214,14 @@ pub fn serialize<S>(key: &Key, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
+    let usage_page_id = key.usage_page_id();
     let usage_id = key.usage_id().ok_or_else(|| {
         ser::Error::custom(format!(
             "failed to serialize `Key::{:?}`, consider using `Key::Raw(..)`",
             key
         ))
     })?;
-    serializer.serialize_u64(usage_id | 0x700000000)
+    serializer.serialize_u64(usage_page_id + usage_id)
 }
 
 #[cfg(test)]
@@ -186,6 +239,7 @@ mod tests {
         assert_eq!(Key::Escape.usage_id().unwrap(), 0x29);
         assert_eq!(Key::Delete.usage_id().unwrap(), 0x2a);
         assert_eq!(Key::CapsLock.usage_id().unwrap(), 0x39);
+        assert_eq!(Key::F(11).usage_id().unwrap(), 0x44);
         assert_eq!(Key::Char('a').usage_id().unwrap(), 0x04);
         assert_eq!(Key::Raw(0x5).usage_id().unwrap(), 0x5);
     }

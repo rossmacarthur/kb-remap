@@ -44,7 +44,7 @@ pub fn list() -> Result<Vec<Device>> {
     let mut h_indices: Option<Vec<Option<usize>>> = None;
 
     while let Some(line) = iter.next() {
-        match &*line {
+        match line {
             "" => {}
             "Services:" | "Devices:" => {
                 kind = match line {
