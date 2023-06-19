@@ -3,55 +3,27 @@ mod key;
 use std::str;
 
 use anyhow::{anyhow, bail, Error, Result};
-use serde::Serialize;
 
-pub use self::key::Key;
+pub use crate::hid::types::key::Key;
 
-/// A keyboard modification.
-///
-/// Could be more than one remapping.
+/// A keyboard modification consisting of one or more mappings.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Mod {
-    pub mappings: Vec<Mapping>,
-}
-
-/// A list of remappings.
-#[derive(Serialize)]
-pub struct ModList<'a> {
-    #[serde(rename = "UserKeyMapping")]
-    pub mappings: &'a [Mapping],
-}
+pub struct Mappings(pub Vec<Map>);
 
 /// A basic remapping of a key.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
-pub struct Mapping {
-    #[serde(
-        rename = "HIDKeyboardModifierMappingSrc",
-        serialize_with = "self::key::serialize"
-    )]
-    src: Key,
-    #[serde(
-        rename = "HIDKeyboardModifierMappingDst",
-        serialize_with = "self::key::serialize"
-    )]
-    dst: Key,
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Map(pub Key, pub Key);
 
-impl Mapping {
-    fn new(src: Key, dst: Key) -> Self {
-        Self { src, dst }
-    }
-}
-
-impl std::str::FromStr for Mod {
+impl std::str::FromStr for Mappings {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self> {
         if s.is_empty() {
             bail!("empty")
         }
         let (src, dst) = s
             .split_once(':')
-            .ok_or_else(|| anyhow!("does not contain a colon"))?;
+            .ok_or_else(|| anyhow!("colon not found"))?;
 
         enum K {
             Double { l: Key, r: Key },
@@ -81,49 +53,31 @@ impl std::str::FromStr for Mod {
             Ok::<_, Error>(m)
         };
 
-        fn map(src: K, dst: K) -> Vec<Mapping> {
+        fn map(src: K, dst: K) -> Vec<Map> {
             match (src, dst) {
                 (K::Double { l: l0, r: r0 }, K::Double { l: l1, r: r1 }) => {
-                    vec![Mapping::new(l0, l1), Mapping::new(r0, r1)]
+                    vec![Map(l0, l1), Map(r0, r1)]
                 }
                 (K::Double { l, r }, K::Single(dst)) => {
-                    vec![Mapping::new(l, dst), Mapping::new(r, dst)]
+                    vec![Map(l, dst), Map(r, dst)]
                 }
                 (K::Single(src), K::Double { l, r }) => {
-                    vec![Mapping::new(src, l), Mapping::new(src, r)]
+                    vec![Map(src, l), Map(src, r)]
                 }
                 (K::Single(src), K::Single(dst)) => {
-                    vec![Mapping::new(src, dst)]
+                    vec![Map(src, dst)]
                 }
             }
         }
 
-        let src = parse(src)?;
-        let dst = parse(dst)?;
-
-        Ok(Self {
-            mappings: map(src, dst),
-        })
+        Ok(Self(map(parse(src)?, parse(dst)?)))
     }
 }
 
-impl Mapping {
-    /// The source key.
-    pub fn src(&self) -> Key {
-        self.src
-    }
-
-    /// The destination key.
-    pub fn dst(&self) -> Key {
-        self.dst
-    }
-
+impl Map {
     /// Returns a new modification with the source and destination swapped.
     pub fn swapped(self) -> Self {
-        Self {
-            src: self.dst,
-            dst: self.src,
-        }
+        Self(self.1, self.0)
     }
 }
 
@@ -136,54 +90,31 @@ mod tests {
     #[test]
     fn mod_from_str() {
         let tests = &[
-            (
-                "return:A",
-                [Mapping {
-                    src: Key::Return,
-                    dst: Key::Char('A'),
-                }]
-                .as_slice(),
-            ),
+            ("return:A", [Map(Key::Return, Key::Char('A'))].as_slice()),
             (
                 "capslock:0x64",
-                [Mapping {
-                    src: Key::CapsLock,
-                    dst: Key::Raw(0x64),
-                }]
-                .as_slice(),
+                [Map(Key::CapsLock, Key::Raw(0x64))].as_slice(),
             ),
             (
                 "command:lcontrol",
                 [
-                    Mapping {
-                        src: Key::LeftCommand,
-                        dst: Key::LeftControl,
-                    },
-                    Mapping {
-                        src: Key::RightCommand,
-                        dst: Key::LeftControl,
-                    },
+                    Map(Key::LeftCommand, Key::LeftControl),
+                    Map(Key::RightCommand, Key::LeftControl),
                 ]
                 .as_slice(),
             ),
             (
                 "command:control",
                 [
-                    Mapping {
-                        src: Key::LeftCommand,
-                        dst: Key::LeftControl,
-                    },
-                    Mapping {
-                        src: Key::RightCommand,
-                        dst: Key::RightControl,
-                    },
+                    Map(Key::LeftCommand, Key::LeftControl),
+                    Map(Key::RightCommand, Key::RightControl),
                 ]
                 .as_slice(),
             ),
         ];
 
         for tc in tests {
-            assert_eq!(Mod::from_str(tc.0).unwrap().mappings, tc.1);
+            assert_eq!(Mappings::from_str(tc.0).unwrap().0, tc.1);
         }
     }
 }

@@ -2,15 +2,14 @@ mod cmd;
 mod types;
 
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::process;
 
-use anyhow::{Context, Result};
-use serde::Serialize;
+use anyhow::{anyhow, Context, Result};
 
 use crate::hex;
-
-use self::cmd::CommandExt;
-pub use self::types::{Key, Mapping, Mod, ModList};
+use crate::hid::cmd::CommandExt;
+pub use crate::hid::types::{Key, Map, Mappings};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Device {
@@ -23,14 +22,6 @@ pub struct Device {
 enum Kind {
     Service,
     Device,
-}
-
-#[derive(Serialize)]
-struct Matching {
-    #[serde(rename = "VendorID")]
-    vendor_id: u64,
-    #[serde(rename = "ProductID")]
-    product_id: u64,
 }
 
 /// List available HID devices.
@@ -98,44 +89,55 @@ pub fn list() -> Result<Vec<Device>> {
 }
 
 /// Apply the modifications to the device.
-pub fn apply(device: &Option<Device>, mappings: &[Mapping]) -> Result<()> {
+pub fn apply(device: &Option<Device>, mappings: &[Map]) -> Result<()> {
     let mut cmd = process::Command::new("hidutil");
     cmd.arg("property");
-
     if let Some(d) = device {
-        let aux = Matching {
-            vendor_id: d.vendor_id,
-            product_id: d.product_id,
-        };
-        cmd.arg("--matching").arg(&serde_json::to_string(&aux)?);
+        cmd.arg("--matching").arg(dump_matching_option(d));
     }
-
     cmd.arg("--set")
-        .arg(&serde_json::to_string(&ModList { mappings })?)
+        .arg(dump_set_option(mappings)?)
         .output_text()?;
-
     Ok(())
 }
 
 /// Dump the raw hidutil modification command.
-#[allow(clippy::single_char_add_str)]
-pub fn dump(device: &Option<Device>, mappings: &[Mapping]) -> Result<String> {
+pub fn dump(device: &Option<Device>, mappings: &[Map]) -> Result<String> {
     let mut s = String::from("hidutil property");
-
-    if let Some(d) = device {
-        let aux = Matching {
-            vendor_id: d.vendor_id,
-            product_id: d.product_id,
-        };
-        s.push_str(" \\\n    --matching '");
-        s.push_str(&serde_json::to_string(&aux)?);
-        s.push_str("'");
+    if let Some(d) = device.as_ref() {
+        write!(s, " \\\n  --matching '{}'", dump_matching_option(d))?;
     }
+    write!(s, " \\\n  --set '{}'", dump_set_option(mappings)?)?;
+    Ok(s)
+}
 
-    s.push_str(" \\\n    --set '");
-    s.push_str(&serde_json::to_string(&ModList { mappings })?);
-    s.push_str("'");
+fn dump_matching_option(device: &Device) -> String {
+    format!(
+        "{{\" \"VendorID\" = 0x{:x}, \"ProductID\" = 0x{:04x} }}",
+        device.vendor_id, device.product_id,
+    )
+}
 
+fn dump_set_option(mappings: &[Map]) -> Result<String> {
+    let mut s = String::from("{\"UserKeyMapping\":[");
+    for (i, Map(src, dst)) in mappings.iter().enumerate() {
+        let err = |&key| {
+            anyhow!(
+                "failed to serialize `Key::{:?}`, consider using `Key::Raw(..)`",
+                key
+            )
+        };
+        if i > 0 {
+            s.push(',');
+        }
+        s.push('{');
+        let src = src.usage_page_id() + src.usage_id().ok_or_else(|| err(src))?;
+        write!(s, "\"HIDKeyboardModifierMappingSrc\":0x{:09x},", src,)?;
+        let dst = dst.usage_page_id() + dst.usage_id().ok_or_else(|| err(dst))?;
+        write!(s, "\"HIDKeyboardModifierMappingDst\":0x{:09x}", dst)?;
+        s.push('}');
+    }
+    s.push_str("]}");
     Ok(s)
 }
 

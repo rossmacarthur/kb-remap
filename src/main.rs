@@ -7,7 +7,7 @@ use anyhow::{bail, Result};
 use clap::Parser;
 
 use crate::hex::Hex;
-use crate::hid::{Device, Mapping, Mod};
+use crate::hid::{Device, Map, Mappings};
 
 const HELP_TEMPLATE: &str = "\
 {before-help}{bin} {version}
@@ -41,11 +41,11 @@ struct Opt {
 
     /// Swap two keys. Equivalent to two `map` options.
     #[clap(short, long, value_name = "SRC:DST")]
-    swap: Vec<Mod>,
+    swap: Vec<Mappings>,
 
     /// A map of source key to destination key.
     #[clap(short, long, value_name = "SRC:DST")]
-    map: Vec<Mod>,
+    map: Vec<Mappings>,
 
     /// Select the first keyboard with this name.
     #[clap(long, value_name = "NAME")]
@@ -62,14 +62,14 @@ struct Opt {
 
 impl Opt {
     /// Flatten all the mappings into a single list.
-    fn mappings(&self) -> Vec<Mapping> {
+    fn mappings(&self) -> Vec<Map> {
         self.swap
             .iter()
-            .flat_map(|Mod { mappings }| mappings.iter().flat_map(|m| [*m, m.swapped()]))
+            .flat_map(|Mappings(mappings)| mappings.iter().flat_map(|m| [*m, m.swapped()]))
             .chain(
                 self.map
                     .iter()
-                    .flat_map(|Mod { mappings }| mappings.iter().cloned()),
+                    .flat_map(|Mappings(mappings)| mappings.iter().cloned()),
             )
             .collect()
     }
@@ -143,8 +143,8 @@ fn apply(opt: &Opt) -> Result<()> {
         } else if !mappings.is_empty() {
             hid::apply(&d, &mappings)?;
             println!("Applied the following modifications:");
-            for m in mappings {
-                println!("  {:?} -> {:?}", m.src(), m.dst());
+            for Map(src, dst) in mappings {
+                println!("  {:?} -> {:?}", src, dst);
             }
         } else {
             println!("No modifications to apply");

@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use anyhow::{bail, Error};
-use serde::{ser, Serializer};
 
 use crate::hex;
 
@@ -83,7 +82,7 @@ impl FromStr for Key {
                 if m.chars().count() == 1 {
                     return Ok(Key::Char(s.chars().next().unwrap()));
                 } else if let Some(f) = m.strip_prefix('f') {
-                    let num = f.parse::<u8>()?;
+                    let num: u8 = f.parse()?;
                     if !(1..=24).contains(&num) {
                         bail!("invalid function key number: {}", num);
                     }
@@ -98,15 +97,15 @@ impl FromStr for Key {
 
 impl Key {
     /// Returns the usage page ID for this key.
-    pub(crate) fn usage_page_id(&self) -> u64 {
+    pub fn usage_page_id(&self) -> u64 {
         match self {
-            Key::Fn => 0xff00000000,
+            Key::Fn => 0xff_0000_0000,
             _ => 0x7_0000_0000,
         }
     }
 
     /// Returns the usage ID for this key.
-    pub(crate) fn usage_id(&self) -> Option<u64> {
+    pub fn usage_id(&self) -> Option<u64> {
         // https://developer.apple.com/library/archive/technotes/tn2450/_index.html
         let usage_id = match self {
             Self::Return => 0x28,
@@ -210,26 +209,29 @@ impl Key {
     }
 }
 
-pub fn serialize<S>(key: &Key, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let usage_page_id = key.usage_page_id();
-    let usage_id = key.usage_id().ok_or_else(|| {
-        ser::Error::custom(format!(
-            "failed to serialize `Key::{:?}`, consider using `Key::Raw(..)`",
-            key
-        ))
-    })?;
-    serializer.serialize_u64(usage_page_id + usage_id)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn key_from_str() {
+        assert_eq!(Key::from_str("return").unwrap(), Key::Return);
+        assert_eq!(Key::from_str("escape").unwrap(), Key::Escape);
+        assert_eq!(Key::from_str("delete").unwrap(), Key::Delete);
+        assert_eq!(Key::from_str("capslock").unwrap(), Key::CapsLock);
+        assert_eq!(Key::from_str("lcontrol").unwrap(), Key::LeftControl);
+        assert_eq!(Key::from_str("rcontrol").unwrap(), Key::RightControl);
+        assert_eq!(Key::from_str("lshift").unwrap(), Key::LeftShift);
+        assert_eq!(Key::from_str("rshift").unwrap(), Key::RightShift);
+        assert_eq!(Key::from_str("loption").unwrap(), Key::LeftOption);
+        assert_eq!(Key::from_str("roption").unwrap(), Key::RightOption);
+        assert_eq!(Key::from_str("lcommand").unwrap(), Key::LeftCommand);
+        assert_eq!(Key::from_str("rcommand").unwrap(), Key::RightCommand);
+        assert_eq!(Key::from_str("fn").unwrap(), Key::Fn);
+        for f in 1..=24 {
+            assert_eq!(Key::from_str(&format!("f{}", f)).unwrap(), Key::F(f));
+        }
+        assert_eq!(Key::from_str("c").unwrap(), Key::Char('c'));
         assert_eq!(Key::from_str("0x39").unwrap(), Key::Raw(0x39));
     }
 
@@ -242,16 +244,5 @@ mod tests {
         assert_eq!(Key::F(11).usage_id().unwrap(), 0x44);
         assert_eq!(Key::Char('a').usage_id().unwrap(), 0x04);
         assert_eq!(Key::Raw(0x5).usage_id().unwrap(), 0x5);
-    }
-
-    #[test]
-    fn key_serialize_err() {
-        let mut buf = Vec::new();
-        let mut ser = serde_json::Serializer::new(&mut buf);
-        let err = serialize(&Key::Char('§'), &mut ser).unwrap_err();
-        assert_eq!(
-            err.to_string(),
-            "failed to serialize `Key::Char('§')`, consider using `Key::Raw(..)`"
-        );
     }
 }

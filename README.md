@@ -122,8 +122,8 @@ the key corresponds to on a US keyboard.
 
 ### Number
 
-Any key can be specified by using the USB usage ID in decimal or hex. For
-example: Z has a usage ID of "29", which can also be specified as "0x1d".
+Any key can be specified by using the USB usage ID in hex. For example: Z has a
+usage ID of "0x1d".
 
 ## 🤔 Why? How?
 

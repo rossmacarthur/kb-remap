@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use anyhow::anyhow;
 use anyhow::{Context, Error, Result};
 
 #[derive(Debug, Clone, Copy)]
@@ -13,12 +14,9 @@ impl FromStr for Hex {
     }
 }
 
-#[allow(clippy::from_str_radix_10)]
 pub fn parse(s: &str) -> Result<u64> {
-    match s.strip_prefix("0x") {
-        Some(h) => u64::from_str_radix(h, 16)
-            .with_context(|| format!("failed to parse `{}` as hexadecimal", s)),
-        None => u64::from_str_radix(s, 10)
-            .with_context(|| format!("failed to parse `{}` as decimal", s)),
-    }
+    let h = s
+        .strip_prefix("0x")
+        .ok_or_else(|| anyhow!("{} missing prefix `0x`", s))?;
+    u64::from_str_radix(h, 16).with_context(|| format!("failed to parse `{}` as hexadecimal", s))
 }
