@@ -4,15 +4,27 @@ mod hid;
 use std::fmt::Write;
 
 use anyhow::{bail, Result};
-use clap::{AppSettings, Parser};
+use clap::Parser;
 
 use crate::hex::Hex;
 use crate::hid::{Device, Mapping, Mod};
 
+const HELP_TEMPLATE: &str = "\
+{before-help}{bin} {version}
+{author}
+{about}
+
+{usage-heading}
+{tab}{usage}
+
+{all-args}{after-help}";
+
 #[derive(Debug, Parser)]
 #[clap(
-    disable_colored_help = true,
-    setting = AppSettings::DeriveDisplayOrder
+    author,
+    version,
+    about,
+    help_template = HELP_TEMPLATE,
 )]
 struct Opt {
     /// List the available keyboards.
