@@ -15,9 +15,26 @@ cargo install kb-remap
 
 ## 🤸 Usage
 
-Running the tool without any options will list the available HID devices.
+To globally remap keys you can just run the tool with one or more `--map` or
+`--swap` options. For example the following remaps capslock to backspace and
+swaps § (section) and ` (backtick) on all keyboards.
 ```sh
-$ kb-remap --list
+kb-remap --map capslock:delete --swap '0x64:`'
+```
+
+Reset the mapping using
+```sh
+kb-remap --reset
+```
+
+### Filtering keyboards
+
+You can optionally filter which keyboards are remapped by using the `--name`
+option. Use the `--list` option to list the available HID devices and their
+names.
+
+```sh
+kb-remap --list
 ```
 ```text
 Vendor ID  Product ID  Name
@@ -31,27 +48,27 @@ Vendor ID  Product ID  Name
 0x1050     0x407       YubiKey OTP+FIDO+CCID
 ```
 
-Usually it's pretty simple to pick out which devices are keyboards. Using the
-name listed above as `--name` you can remap any key you want using the `--map`
-or `--swap` options. For example the following remaps capslock to backspace and
-swaps § (section) and ` (backtick) on a the internal macOS keyboard.
+Using the name listed above as `--name` you can remap any key you want using the
+`--map` or `--swap` options. For example the following remaps capslock to
+backspace and swaps § (section) and ` (backtick) on a the internal macOS
+keyboard.
 ```sh
-$ kb-remap --name "Apple Internal Keyboard / Trackpad" --map capslock:delete --swap '0x64:`'
+kb-remap --name "Apple Internal Keyboard / Trackpad" --map capslock:delete --swap '0x64:`'
 ```
 
 You can reset the mapping using:
 ```sh
-$ kb-remap --name "Apple Internal Keyboard / Trackpad" --reset
+kb-remap --name "Apple Internal Keyboard / Trackpad" --reset
 ```
 
-If you want you can inspect the raw `hidutil` command that would be run for
-a particular command using the `--dump` option.
+If you want you can inspect the raw `hidutil` command that would be run for a
+particular command using the `--dump` option.
 ```
-$ kb-remap --name "Apple Internal Keyboard / Trackpad" --map capslock:delete --dump
+kb-remap --name "Apple Internal Keyboard / Trackpad" --map capslock:delete --dump
 ```
 
 Would output the following:
-```
+```text
 hidutil property \
     --matching '{"VendorID":1452,"ProductID":834}' \
     --set '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":30064771129,"HIDKeyboardModifierMappingDst":30064771114}]}'
@@ -87,8 +104,8 @@ Some keys you can specify using their name. For example the Return (Enter) key
 | F1, F2, ..., F12   | `f1`, `f2`, ..., `f12`  | 0x3A -> 0x45 |
 | F13, F14, ..., F24 | `f13`, `f4`, ..., `f24` | 0x68 -> 0x73 |
 
-Additionally, the following special names are available and map multiple keys
-if they are used.
+Additionally, the following special names are available and map multiple keys if
+they are used.
 
 | Keys                 | Code      |
 | -------------------- | --------- |
@@ -117,17 +134,14 @@ support the latest macOS version. I wanted a simple reliable solution.
 Instead of a constantly running application `kb-remap` simply subprocesses to
 the built-in macOS  `hidutil` command to fetch keyboard information and to remap
 keys. This remapping does not persist if keyboards are unplugged or **if your
-Mac goes to sleep**. `kb-remap` does not solve this problem for you yet. One
-option is to install a launchd service to automatically run `kb-remap`.
+Mac is restarted**. `kb-remap` does not solve this problem for you yet. One
+option is to install a launchd service to automatically run `kb-remap` on boot.
 
 [Karabiner-Elements]: https://github.com/pqrs-org/Karabiner-Elements
 
 ## License
 
-Licensed under either of
+This project is distributed under the terms of both the MIT license and the
+Apache License (Version 2.0).
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
-  http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
+See [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT) for details.
