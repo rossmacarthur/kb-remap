@@ -1,15 +1,12 @@
-mod cmd;
-mod types;
-
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::process;
 
 use anyhow::{anyhow, Context, Result};
 
+use crate::cmd::CommandExt;
 use crate::hex;
-use crate::hid::cmd::CommandExt;
-pub use crate::hid::types::{Key, Map, Mappings};
+pub use crate::types::{Key, Map, Mappings};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Device {
@@ -57,11 +54,10 @@ pub fn list() -> Result<Vec<Device>> {
                 }
 
                 let indices = h_indices.as_deref().unwrap().windows(2);
-                #[allow(clippy::match_ref_pats)]
                 let map: HashMap<_, _> = indices
-                    .map(|w| match w {
-                        &[Some(m), Some(n)] => (h[m..n].trim(), line[m..n].trim()),
-                        &[Some(m), None] => (h[m..].trim(), line[m..].trim()),
+                    .map(|w| match *w {
+                        [Some(m), Some(n)] => (h[m..n].trim(), line[m..n].trim()),
+                        [Some(m), None] => (h[m..].trim(), line[m..].trim()),
                         _ => unreachable!(),
                     })
                     .collect();

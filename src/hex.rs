@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
-use anyhow::anyhow;
-use anyhow::{Context, Error, Result};
+use anyhow::{anyhow, Context, Error, Result};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Hex(pub u64);

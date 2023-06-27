@@ -1,5 +1,7 @@
+mod cmd;
 mod hex;
 mod hid;
+mod types;
 
 use std::fmt::Write;
 
@@ -7,7 +9,8 @@ use anyhow::{bail, Result};
 use clap::Parser;
 
 use crate::hex::Hex;
-use crate::hid::{Device, Map, Mappings};
+use crate::hid::Device;
+use crate::types::{Map, Mappings};
 
 const HELP_TEMPLATE: &str = "\
 {before-help}{bin} {version}
