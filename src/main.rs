@@ -35,7 +35,7 @@ struct Opt {
     list: bool,
 
     /// Reset the keyboard mapping.
-    #[clap(long, conflicts_with_all = &["list", "swap", "map"], alias = "RESET")]
+    #[clap(long, conflicts_with_all = &["list", "swap", "map"],  short_alias = 'R', alias = "RESET")]
     reset: bool,
 
     /// Dump the raw hidutil command that would be executed.
