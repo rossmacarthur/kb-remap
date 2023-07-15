@@ -1,6 +1,6 @@
 [package]
 name = "kb-remap"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Ross MacArthur <ross@macarthur.io>"]
 edition = "2021"
 description = "Tool to assist remapping macOS keyboard keys"
