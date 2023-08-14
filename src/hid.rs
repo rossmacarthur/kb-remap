@@ -15,67 +15,73 @@ pub struct Device {
     pub name: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Kind {
-    Service,
-    Device,
-}
-
 /// List available HID devices.
 pub fn list() -> Result<Vec<Device>> {
-    let mut devices = Vec::new();
     let output = process::Command::new("hidutil").arg("list").output_text()?;
-    let mut iter = output.lines();
+    let devices = parse_hidutil_output(&output).context("failed to parse `hidutil list` output")?;
+    Ok(devices)
+}
 
-    let mut kind = Kind::Device;
-    let mut h = "";
-    let mut h_indices: Option<Vec<Option<usize>>> = None;
+fn parse_hidutil_output(mut output: &str) -> Result<Vec<Device>> {
+    let mut devices = Vec::new();
 
-    while let Some(line) = iter.next() {
-        match line {
-            "" => {}
-            "Services:" | "Devices:" => {
-                kind = match line {
-                    "Services:" => Kind::Service,
-                    "Devices:" => Kind::Device,
-                    _ => unreachable!(),
-                };
-                h = iter.next().context("expected header")?;
-                h_indices = Some(
-                    split_whitespace_indices(h)
-                        .map(Some)
-                        .chain([None])
-                        .collect(),
-                );
-            }
-            line => {
-                if kind != Kind::Device {
-                    continue;
+    // first find the header and skip past it
+    const HEADER: &str = "Devices:\n";
+    let start = output.find(HEADER).context("expected 'Devices:'")? + HEADER.len();
+    output = &output[start..];
+
+    // then parse the indices of the header
+    let line = output
+        .find('\n')
+        .map(|i| &output[..i])
+        .context("expected header")?;
+    let indices: Vec<_> = split_whitespace_indices(line)
+        .map(|(header, i)| Some((header.trim(), i)))
+        .chain([None])
+        .collect();
+
+    // now skip over the header
+    output = &output[line.len() + 1..];
+
+    while !output.is_empty() {
+        let mut line_end = 0;
+
+        // parse the line into a map of header -> value using the header
+        // indices to know where columns start and end, for the last column
+        // we simply find the next newline
+        let map: HashMap<_, _> = indices
+            .windows(2)
+            .map(|w| match *w {
+                [Some((header, m)), Some((_, n))] => {
+                    let value = output[m..n].trim();
+                    (header, value)
                 }
+                [Some((header, m)), None] => {
+                    line_end = output[m..]
+                        .find('\n')
+                        .map(|i| m + i + 1)
+                        .unwrap_or(output.len());
+                    let value = output[m..line_end].trim();
+                    (header, value)
+                }
+                _ => unreachable!(),
+            })
+            .collect();
 
-                let indices = h_indices.as_deref().unwrap().windows(2);
-                let map: HashMap<_, _> = indices
-                    .map(|w| match *w {
-                        [Some(m), Some(n)] => (h[m..n].trim(), line[m..n].trim()),
-                        [Some(m), None] => (h[m..].trim(), line[m..].trim()),
-                        _ => unreachable!(),
-                    })
-                    .collect();
+        output = &output[line_end..];
 
-                let name = match parse_maybe(map["Product"]) {
-                    Some(name) => name,
-                    None => continue,
-                };
-                let vendor_id = hex::parse(map["VendorID"])?;
-                let product_id = hex::parse(map["ProductID"])?;
+        let name = match parse_maybe(map["Product"]) {
+            Some(name) => name.replace('\n', " "),
+            None => continue,
+        };
+        let vendor_id = hex::parse(map["VendorID"])?;
+        let product_id = hex::parse(map["ProductID"])?;
 
-                devices.push(Device {
-                    vendor_id,
-                    product_id,
-                    name,
-                });
-            }
-        }
+        devices.push(Device {
+            vendor_id,
+            product_id,
+            name,
+        });
     }
 
     devices.sort();
@@ -144,7 +150,134 @@ fn parse_maybe(s: &str) -> Option<String> {
     }
 }
 
-fn split_whitespace_indices(s: &str) -> impl Iterator<Item = usize> + '_ {
+fn split_whitespace_indices(s: &str) -> impl Iterator<Item = (&str, usize)> + '_ {
     let addr = |s: &str| s.as_ptr() as usize;
-    s.split_whitespace().map(move |sub| (addr(sub) - addr(s)))
+    s.split_whitespace()
+        .map(move |sub| (sub, (addr(sub) - addr(s))))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_hidutil_output_empty() {
+        let output = r#"Devices:
+VendorID ProductID Product
+"#;
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(devices, Vec::new());
+    }
+
+    #[test]
+    fn test_parse_hidutil_output_preamble() {
+        let output = r#"
+Services:
+VendorID ProductID LocationID UsagePage Usage RegistryID  Transport Class
+
+Devices:
+VendorID ProductID Product
+"#;
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(devices, Vec::new());
+    }
+
+    #[test]
+    fn test_parse_hidutil_output_basic() {
+        let output = r#"Devices:
+VendorID ProductID Product Built-In
+0x0      0x0       BTM     (null)
+"#;
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(
+            devices,
+            vec![Device {
+                vendor_id: 0,
+                product_id: 0,
+                name: "BTM".to_owned()
+            },]
+        );
+    }
+
+    #[test]
+    fn test_parse_hidutil_output_no_trailing_newline() {
+        let output = r#"Devices:
+VendorID ProductID Product Built-In
+0x0      0x0       BTM     (null)"#;
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(
+            devices,
+            vec![Device {
+                vendor_id: 0,
+                product_id: 0,
+                name: "BTM".to_owned()
+            },]
+        );
+    }
+
+    #[test]
+    fn test_parse_hidutil_output_null_product() {
+        let output = r#"Devices:
+VendorID ProductID Product Built-In
+0x0      0x0       (null)     (null)"#;
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(devices, vec![]);
+    }
+
+    #[test]
+    fn test_parse_hidutil_output_wide() {
+        let output = r#"Devices:
+VendorID ProductID Product             Built-In
+0x0      0x0       BTM                 (null)
+0x5ac    0x8600    TouchBarUserDevice  1
+"#;
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(
+            devices,
+            vec![
+                Device {
+                    vendor_id: 0,
+                    product_id: 0,
+                    name: "BTM".to_owned()
+                },
+                Device {
+                    vendor_id: 0x5ac,
+                    product_id: 0x8600,
+                    name: "TouchBarUserDevice".to_owned()
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_hidutil_output_newline() {
+        let output = r#"Devices:
+VendorID ProductID Product             Built-In
+0x0      0x0       BTM                 (null)
+0x5ac    0x8600    TouchBar
+UserDevice    1
+0x6ac    0x9600    Made Up             1
+"#;
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(
+            devices,
+            vec![
+                Device {
+                    vendor_id: 0,
+                    product_id: 0,
+                    name: "BTM".to_owned()
+                },
+                Device {
+                    vendor_id: 0x5ac,
+                    product_id: 0x8600,
+                    name: "TouchBar UserDevice".to_owned()
+                },
+                Device {
+                    vendor_id: 0x6ac,
+                    product_id: 0x9600,
+                    name: "Made Up".to_owned(),
+                }
+            ]
+        );
+    }
 }
