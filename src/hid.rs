@@ -115,7 +115,7 @@ pub fn dump(device: &Option<Device>, mappings: &[Map]) -> Result<String> {
 
 fn dump_matching_option(device: &Device) -> String {
     format!(
-        "{{\" \"VendorID\" = 0x{:x}, \"ProductID\" = 0x{:04x} }}",
+        "{{\"VendorID\": 0x{:04x}, \"ProductID\": 0x{:04x}}}",
         device.vendor_id, device.product_id,
     )
 }
@@ -159,6 +159,23 @@ fn split_whitespace_indices(s: &str) -> impl Iterator<Item = (&str, usize)> + '_
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_dump() {
+        let mappings = vec![Map(Key::Raw(0x7000000e), Key::Raw(0x7000000f))];
+        let device = Device {
+            vendor_id: 0x1234,
+            product_id: 0x5678,
+            name: "test".to_owned(),
+        };
+        let output = dump(&Some(device), &mappings).unwrap();
+        assert_eq!(
+            output,
+            r#"hidutil property \
+  --matching '{"VendorID": 0x1234, "ProductID": 0x5678}' \
+  --set '{"UserKeyMapping":[{"HIDKeyboardModifierMappingSrc":0x77000000e,"HIDKeyboardModifierMappingDst":0x77000000f}]}'"#
+        )
+    }
 
     #[test]
     fn test_parse_hidutil_output_empty() {
