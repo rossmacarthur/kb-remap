@@ -6,7 +6,7 @@ use anyhow::{anyhow, Context, Result};
 
 use crate::cmd::CommandExt;
 use crate::hex;
-pub use crate::types::{Key, Map, Mappings};
+pub use crate::types::Map;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Device {
@@ -44,6 +44,12 @@ fn parse_hidutil_output(mut output: &str) -> Result<Vec<Device>> {
     output = &output[line.len() + 1..];
 
     while !output.is_empty() {
+        // skip over any leading newlines
+        if output.starts_with('\n') {
+            output = &output[1..];
+            continue;
+        }
+
         let mut line_end = 0;
 
         // parse the line into a map of header -> value using the header
@@ -159,6 +165,8 @@ fn split_whitespace_indices(s: &str) -> impl Iterator<Item = (&str, usize)> + '_
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use crate::types::{Key, Map};
 
     #[test]
     fn test_dump() {
@@ -295,6 +303,32 @@ UserDevice    1
                     name: "Made Up".to_owned(),
                 }
             ]
+        );
+    }
+
+    #[test]
+    fn test_parse_hidutil_output_empty_line() {
+        let output = r#"Services:
+VendorID ProductID LocationID UsagePage Usage RegistryID  Transport Class
+
+
+
+Devices:
+VendorID ProductID Product             Built-In
+0x0      0x0       BTM                 (null)
+
+
+
+"#;
+
+        let devices = parse_hidutil_output(output).unwrap();
+        assert_eq!(
+            devices,
+            vec![Device {
+                vendor_id: 0,
+                product_id: 0,
+                name: "BTM".to_owned()
+            }]
         );
     }
 }
