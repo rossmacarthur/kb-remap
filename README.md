@@ -86,23 +86,23 @@ There are three ways to specify keys:
 Some keys you can specify using their name. For example the Return (Enter) key
 "⏎" can be specified as "return". These are added on a convenience basis.
 
-| Key                | Code                    | USB Usage ID |
-| ------------------ | ----------------------- | ------------ |
-| Return (Enter)     | `return`                | 0x28         |
-| Escape             | `escape`                | 0x29         |
-| Delete (Backspace) | `delete`                | 0x2A         |
-| Caps Lock          | `capslock`              | 0x39         |
-| Left Control       | `lcontrol`              | 0xE0         |
-| Left Shift         | `lshift`                | 0xE1         |
-| Left Option        | `loption`               | 0xE2         |
-| Left Command       | `lcommand`              | 0xE3         |
-| Right Control      | `rcontrol`              | 0xE4         |
-| Right Shift        | `rshift`                | 0xE5         |
-| Right Option       | `roption`               | 0xE6         |
-| Right Command      | `rcommand`              | 0xE7         |
-| Function           | `fn`                    |              |
-| F1, F2, ..., F12   | `f1`, `f2`, ..., `f12`  | 0x3A -> 0x45 |
-| F13, F14, ..., F24 | `f13`, `f4`, ..., `f24` | 0x68 -> 0x73 |
+| Key                | Code                    | USB Usage Page | USB Usage ID |
+| ------------------ | ----------------------- | -------------: | -----------: |
+| Return (Enter)     | `return`                |           0x07 |         0x28 |
+| Escape             | `escape`                |           0x07 |         0x29 |
+| Delete (Backspace) | `delete`                |           0x07 |         0x2A |
+| Caps Lock          | `capslock`              |           0x07 |         0x39 |
+| Left Control       | `lcontrol`              |           0x07 |         0xE0 |
+| Left Shift         | `lshift`                |           0x07 |         0xE1 |
+| Left Option        | `loption`               |           0x07 |         0xE2 |
+| Left Command       | `lcommand`              |           0x07 |         0xE3 |
+| Right Control      | `rcontrol`              |           0x07 |         0xE4 |
+| Right Shift        | `rshift`                |           0x07 |         0xE5 |
+| Right Option       | `roption`               |           0x07 |         0xE6 |
+| Right Command      | `rcommand`              |           0x07 |         0xE7 |
+| Function           | `fn`                    |           0xFF |         0x03 |
+| F1, F2, ..., F12   | `f1`, `f2`, ..., `f12`  |           0x07 | 0x3A -> 0x45 |
+| F13, F14, ..., F24 | `f13`, `f4`, ..., `f24` |           0x07 | 0x68 -> 0x73 |
 
 Additionally, the following special names are available and map multiple keys if
 they are used.
@@ -117,13 +117,15 @@ they are used.
 ### Character
 
 Most typeable keys can be specified using their character. For example: the A
-key can be specified using "A" or "a". The USB usage ID used will the one that
+key can be specified using "A" or "a". The USB Usage ID used will the one that
 the key corresponds to on a US keyboard.
 
 ### Number
 
-Any key can be specified by using the USB usage ID in hex. For example: Z has a
-usage ID of "0x1d".
+Any key can be specified by using the USB Usage ID in hex. For example: Z has a
+Usage ID of "0x1d", in this case the USB Usage Page is assumed to be `0x07`
+(keyboard). You can also specify the Usage Page and the Usage ID together like
+this: "0x7_0000_001D".
 
 ## 🤔 Why? How?
 

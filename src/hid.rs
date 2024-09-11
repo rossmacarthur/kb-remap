@@ -139,9 +139,9 @@ fn dump_set_option(mappings: &[Map]) -> Result<String> {
             s.push(',');
         }
         s.push('{');
-        let src = src.usage_page_id() + src.usage_id().ok_or_else(|| err(src))?;
+        let src = src.usage().ok_or_else(|| err(src))?;
         write!(s, "\"HIDKeyboardModifierMappingSrc\":0x{:09x},", src,)?;
-        let dst = dst.usage_page_id() + dst.usage_id().ok_or_else(|| err(dst))?;
+        let dst = dst.usage().ok_or_else(|| err(dst))?;
         write!(s, "\"HIDKeyboardModifierMappingDst\":0x{:09x}", dst)?;
         s.push('}');
     }

@@ -121,6 +121,9 @@ pub enum Key {
     /// This can be used to represent any key that is not enumerated in this
     /// type. See USB HID Usage Tables Specification, Section 10 Keyboard/Keypad
     /// Page for exact values for each key.
+    ///
+    /// If the value is greater than 0x01 << 32, then we assume the value is
+    /// a usage and includes the usage page.
     Raw(u64),
 }
 
@@ -160,18 +163,24 @@ impl FromStr for Key {
 }
 
 impl Key {
-    /// Returns the usage page ID for this key.
-    pub fn usage_page_id(&self) -> u64 {
-        match self {
-            Key::Fn => 0xff_0000_0000,
-            _ => 0x7_0000_0000,
+    /// Returns the usage for this key.
+    pub fn usage(&self) -> Option<u64> {
+        Some(self.usage_page() << 32 | self.usage_id()?)
+    }
+
+    /// Returns the usage page for this key.
+    fn usage_page(&self) -> u64 {
+        match *self {
+            Key::Raw(raw) if raw > 0x01 << 32 => 0x00,
+            Key::Fn => 0xff,
+            _ => 0x07,
         }
     }
 
     /// Returns the usage ID for this key.
-    pub fn usage_id(&self) -> Option<u64> {
+    fn usage_id(&self) -> Option<u64> {
         // https://developer.apple.com/library/archive/technotes/tn2450/_index.html
-        let usage_id = match self {
+        let usage_id = match *self {
             Self::Return => 0x28,
             Self::Escape => 0x29,
             Self::Delete => 0x2a,
@@ -240,7 +249,7 @@ impl Key {
                 '/' | '?' => 0x38,
                 _ => return None,
             },
-            &Self::F(num) => match num {
+            Self::F(num) => match num {
                 1 => 0x3a,
                 2 => 0x3b,
                 3 => 0x3c,
@@ -267,7 +276,7 @@ impl Key {
                 24 => 0x73,
                 _ => unreachable!(),
             },
-            Self::Raw(raw) => *raw,
+            Self::Raw(raw) => raw,
         };
         Some(usage_id)
     }
@@ -331,13 +340,15 @@ mod tests {
     }
 
     #[test]
-    fn key_usage_id() {
-        assert_eq!(Key::Return.usage_id().unwrap(), 0x28);
-        assert_eq!(Key::Escape.usage_id().unwrap(), 0x29);
-        assert_eq!(Key::Delete.usage_id().unwrap(), 0x2a);
-        assert_eq!(Key::CapsLock.usage_id().unwrap(), 0x39);
-        assert_eq!(Key::F(11).usage_id().unwrap(), 0x44);
-        assert_eq!(Key::Char('a').usage_id().unwrap(), 0x04);
-        assert_eq!(Key::Raw(0x5).usage_id().unwrap(), 0x5);
+    fn key_usage() {
+        assert_eq!(Key::Return.usage().unwrap(), 0x07_0000_0028);
+        assert_eq!(Key::Escape.usage().unwrap(), 0x07_0000_0029);
+        assert_eq!(Key::Delete.usage().unwrap(), 0x07_0000_002a);
+        assert_eq!(Key::CapsLock.usage().unwrap(), 0x07_0000_0039);
+        assert_eq!(Key::Fn.usage().unwrap(), 0xff_0000_0003);
+        assert_eq!(Key::F(11).usage().unwrap(), 0x07_0000_0044);
+        assert_eq!(Key::Char('a').usage().unwrap(), 0x07_0000_0004);
+        assert_eq!(Key::Raw(0x5).usage().unwrap(), 0x07_0000_0005);
+        assert_eq!(Key::Raw(0x7_0000_0005).usage().unwrap(), 0x7_0000_0005);
     }
 }

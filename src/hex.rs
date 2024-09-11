@@ -17,5 +17,6 @@ pub fn parse(s: &str) -> Result<u64> {
     let h = s
         .strip_prefix("0x")
         .ok_or_else(|| anyhow!("{} missing prefix `0x`", s))?;
-    u64::from_str_radix(h, 16).with_context(|| format!("failed to parse `{}` as hexadecimal", s))
+    u64::from_str_radix(&h.replace('_', ""), 16)
+        .with_context(|| format!("failed to parse `{}` as hexadecimal", s))
 }
