@@ -157,7 +157,7 @@ fn apply(opt: &Opt) -> Result<()> {
             hid::apply(&d, &mappings)?;
             println!("Applied the following modifications:");
             for Map(src, dst) in mappings {
-                println!("  {:?} -> {:?}", src, dst);
+                println!("  {src:?} -> {dst:?}");
             }
         } else {
             println!("No modifications to apply");

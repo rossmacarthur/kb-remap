@@ -333,7 +333,7 @@ mod tests {
         assert_eq!(Key::from_str("rcommand").unwrap(), Key::RightCommand);
         assert_eq!(Key::from_str("fn").unwrap(), Key::Fn);
         for f in 1..=24 {
-            assert_eq!(Key::from_str(&format!("f{}", f)).unwrap(), Key::F(f));
+            assert_eq!(Key::from_str(&format!("f{f}")).unwrap(), Key::F(f));
         }
         assert_eq!(Key::from_str("c").unwrap(), Key::Char('c'));
         assert_eq!(Key::from_str("0x39").unwrap(), Key::Raw(0x39));

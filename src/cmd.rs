@@ -12,7 +12,7 @@ impl CommandExt for process::Command {
     fn output_text(&mut self) -> Result<String> {
         let output = self
             .output()
-            .with_context(|| format!("could not execute subprocess: `{:?}`", self))?;
+            .with_context(|| format!("could not execute subprocess: `{self:?}`"))?;
         if !output.status.success() {
             bail!(format_error_msg(self, output));
         }
@@ -30,10 +30,10 @@ fn format_error_msg(cmd: &process::Command, output: process::Output) -> String {
         cmd, output.status
     );
     if !stdout.trim().is_empty() {
-        msg.push_str(&format!("\n--- stdout\n{}", stdout));
+        msg.push_str(&format!("\n--- stdout\n{stdout}"));
     }
     if !stderr.trim().is_empty() {
-        msg.push_str(&format!("\n--- stderr\n{}", stderr));
+        msg.push_str(&format!("\n--- stderr\n{stderr}"));
     }
     msg
 }
