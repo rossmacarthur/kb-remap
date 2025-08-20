@@ -35,6 +35,29 @@ jobs:
         run: cargo test --workspace --all-targets
 
   # ---------------------------------------------------------------------------
+  # Check completions
+  # ---------------------------------------------------------------------------
+
+  completions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Generate completions (bash)
+        run: cargo run -- --completions bash > completions/kb-remap.bash
+
+      - name: Generate completions (fish)
+        run: cargo run -- --completions fish > completions/kb-remap.fish
+
+      - name: Generate completions (zsh)
+        run: cargo run -- --completions zsh > completions/kb-remap.zsh
+
+      - name: Check up to date
+        run: git diff --no-ext-diff --exit-code -- completions/
+
+  # ---------------------------------------------------------------------------
   # Check version against tag
   # ---------------------------------------------------------------------------
 
