@@ -5,13 +5,39 @@
 
 Tool to assist remapping macOS keyboard keys.
 
-## 🚀 Getting started
+## 📦 Installation
 
-Install the tool using Cargo.
+### Cargo
+
+**kb-remap** can be installed from [Crates.io](https://crates.io/crates/sheldon)
+using [Cargo](https://doc.rust-lang.org/cargo/), the Rust package manager.
 
 ```sh
 cargo install kb-remap
 ```
+
+In some circumstances this can fail due to the fact that Cargo does not use
+`Cargo.lock` file by default. You can force Cargo to use it using the `--locked`
+option.
+
+```sh
+cargo install kb-remap --locked
+```
+
+### Pre-built binaries
+
+Pre-built binaries for macOS (aarch64) are provided. These can be downloaded
+directly from the [the releases page].
+
+Alternatively, the following script can be used to automatically detect your host
+system, download the required artifact, and extract the `kb-remap` binary to the
+given directory.
+```sh
+curl --proto '=https' -fLsS https://rossmacarthur.github.io/install/crate.sh \
+    | bash -s -- --repo rossmacarthur/kb-remap --to ~/.local/bin
+```
+
+[the releases page]: https://github.com/rossmacarthur/kb-remap/releases
 
 ## 🤸 Usage
 
