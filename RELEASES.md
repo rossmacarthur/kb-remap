@@ -2,7 +2,7 @@
 
 ## 0.4.1
 
-*Unreleased*
+*August 20th, 2025*
 
 - [Auto upload a release binary for macOS on tag pushes][20ae6f8f]
 - [Add `--completions` option to generate shell completions][fbb8a22a]
