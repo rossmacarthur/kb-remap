@@ -4,9 +4,10 @@ mod hid;
 mod types;
 
 use std::fmt::Write;
+use std::io;
 
 use anyhow::{bail, Result};
-use clap::Parser;
+use clap::{CommandFactory, Parser};
 
 use crate::hex::Hex;
 use crate::hid::Device;
@@ -61,6 +62,10 @@ struct Opt {
     /// Select the first keyboard with this product ID.
     #[clap(long, value_name = "PRODUCT-ID")]
     product_id: Option<Hex>,
+
+    /// Generate completions for the specified shell.
+    #[clap(long, value_name = "SHELL", conflicts_with_all = &["list", "reset", "dump", "swap", "map", "name", "vendor_id", "product_id"])]
+    completions: Option<clap_complete::Shell>,
 }
 
 impl Opt {
@@ -80,7 +85,12 @@ impl Opt {
 
 fn main() -> Result<()> {
     let opt = Opt::parse();
-    if opt.list {
+
+    if let Some(shell) = opt.completions {
+        let mut app = Opt::command();
+        clap_complete::generate(shell, &mut app, env!("CARGO_PKG_NAME"), &mut io::stdout());
+        Ok(())
+    } else if opt.list {
         list()
     } else {
         apply(&opt)

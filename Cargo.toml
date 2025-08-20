@@ -12,6 +12,7 @@ categories = ["command-line-utilities"]
 
 [dependencies]
 anyhow = "1.0.71"
+clap_complete = "4.5.57"
 plist = { version = "1.4.3", features = ["serde"] }
 serde = { version = "1.0.164", features = ["derive"] }
 
