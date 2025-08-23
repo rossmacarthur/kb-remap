@@ -7,10 +7,20 @@ Tool to assist remapping macOS keyboard keys.
 
 ## 📦 Installation
 
+### Homebrew
+
+**`kb-remap`** can be installed from my personal tap which includes pre-built
+binaries.
+
+```sh
+brew install rossmacarthur/tap/kb-remap
+```
+
 ### Cargo
 
-**kb-remap** can be installed from [Crates.io](https://crates.io/crates/sheldon)
-using [Cargo](https://doc.rust-lang.org/cargo/), the Rust package manager.
+**`kb-remap`** can be installed from
+[Crates.io](https://crates.io/crates/sheldon) using
+[Cargo](https://doc.rust-lang.org/cargo/), the Rust package manager.
 
 ```sh
 cargo install kb-remap
