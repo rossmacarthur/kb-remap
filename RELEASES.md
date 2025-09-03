@@ -1,5 +1,16 @@
 # 📝 Release notes
 
+## 0.5.0
+
+*September 3rd, 2025*
+
+- [Add more basic ANSI keys and section (§) with aliases][54596199]. This change
+  adds many more aliases for basic ANSI keys like `scrolllock` etc. Some char
+  mappings have been simplified to only map from the primary key. For example:
+  you must now use `1` not `!` to map that key.
+
+[54596199]: https://github.com/rossmacarthur/kb-remap/commit/545961999a0cc5efdeed8eb877e8f25f81d40c44
+
 ## 0.4.1
 
 *August 20th, 2025*
