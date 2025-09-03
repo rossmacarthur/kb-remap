@@ -89,8 +89,40 @@ pub enum Key {
     Escape,
     /// ⌫
     Delete,
+    /// ⇥
+    Tab,
+    /// ␣
+    Space,
     /// ⇪
     CapsLock,
+    /// Print Screen
+    PrintScreen,
+    /// Scroll Lock
+    ScrollLock,
+    /// Pause
+    Pause,
+    /// Insert
+    Insert,
+    /// Home
+    Home,
+    /// Page Up
+    PageUp,
+    /// Delete Forward
+    DeleteF,
+    /// End
+    End,
+    /// Page Down
+    PageDown,
+    /// →
+    Right,
+    /// ←
+    Left,
+    /// ↓
+    Down,
+    /// ↑
+    Up,
+    /// Num Lock
+    NumLock,
     /// Left ⌃
     LeftControl,
     /// Left ⇧
@@ -109,6 +141,9 @@ pub enum Key {
     RightCommand,
     /// fn
     Fn,
+
+    /// §
+    Section,
 
     /// A character on the keyboard.
     Char(char),
@@ -132,10 +167,26 @@ impl FromStr for Key {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let key = match s.to_lowercase().as_str() {
-            "return" => Key::Return,
+            "return" | "enter" => Key::Return,
             "escape" => Key::Escape,
-            "delete" => Key::Delete,
+            "delete" | "backspace" => Key::Delete,
+            "tab" => Key::Tab,
+            "space" => Key::Space,
             "capslock" => Key::CapsLock,
+            "printscreen" => Key::PrintScreen,
+            "scrolllock" => Key::ScrollLock,
+            "pause" => Key::Pause,
+            "insert" => Key::Insert,
+            "home" => Key::Home,
+            "pageup" => Key::PageUp,
+            "deletef" => Key::DeleteF,
+            "end" => Key::End,
+            "pagedown" => Key::PageDown,
+            "right" => Key::Right,
+            "left" => Key::Left,
+            "down" => Key::Down,
+            "up" => Key::Up,
+            "numlock" => Key::NumLock,
             "lcontrol" => Key::LeftControl,
             "rcontrol" => Key::RightControl,
             "lshift" => Key::LeftShift,
@@ -145,6 +196,7 @@ impl FromStr for Key {
             "lcommand" => Key::LeftCommand,
             "rcommand" => Key::RightCommand,
             "fn" => Key::Fn,
+            "section" => Key::Section,
             m => {
                 if m.chars().count() == 1 {
                     return Ok(Key::Char(s.chars().next().unwrap()));
@@ -184,7 +236,23 @@ impl Key {
             Self::Return => 0x28,
             Self::Escape => 0x29,
             Self::Delete => 0x2a,
+            Self::Tab => 0x2b,
+            Self::Space => 0x2c,
             Self::CapsLock => 0x39,
+            Self::PrintScreen => 0x46,
+            Self::ScrollLock => 0x47,
+            Self::Pause => 0x48,
+            Self::Insert => 0x49,
+            Self::Home => 0x4a,
+            Self::PageUp => 0x4b,
+            Self::DeleteF => 0x4c,
+            Self::End => 0x4d,
+            Self::PageDown => 0x4e,
+            Self::Right => 0x4f,
+            Self::Left => 0x50,
+            Self::Down => 0x51,
+            Self::Up => 0x52,
+            Self::NumLock => 0x53,
             Self::LeftControl => 0xe0,
             Self::LeftShift => 0xe1,
             Self::LeftOption => 0xe2,
@@ -194,6 +262,7 @@ impl Key {
             Self::RightOption => 0xe6,
             Self::RightCommand => 0xe7,
             Self::Fn => 0x03,
+            Self::Section => 0x64,
             Self::Char(c) => match c {
                 'a' | 'A' => 0x04,
                 'b' | 'B' => 0x05,
@@ -222,31 +291,32 @@ impl Key {
                 'y' | 'Y' => 0x1c,
                 'z' | 'Z' => 0x1d,
 
-                '1' | '!' => 0x1e,
-                '2' | '@' => 0x1f,
-                '3' | '#' => 0x20,
-                '4' | '$' => 0x21,
-                '5' | '%' => 0x22,
-                '6' | '^' => 0x23,
-                '7' | '&' => 0x24,
-                '8' | '*' => 0x25,
-                '9' | '(' => 0x26,
-                '0' | ')' => 0x27,
+                '1' => 0x1e,
+                '2' => 0x1f,
+                '3' => 0x20,
+                '4' => 0x21,
+                '5' => 0x22,
+                '6' => 0x23,
+                '7' => 0x24,
+                '8' => 0x25,
+                '9' => 0x26,
+                '0' => 0x27,
 
-                '\t' => 0x2b,
-                ' ' => 0x2c,
-                '-' | '_' => 0x2d,
-                '=' | '+' => 0x2e,
-                '[' | '{' => 0x2f,
-                ']' | '}' => 0x30,
-                '\\' | '|' => 0x31,
-                // '#' | '~' => 0x32, // Non-US
-                ';' | ':' => 0x33,
-                '\'' | '"' => 0x34,
-                '`' | '~' => 0x35,
-                ',' | '<' => 0x36,
-                '.' | '>' => 0x37,
-                '/' | '?' => 0x38,
+                '-' => 0x2d,
+                '=' => 0x2e,
+                '[' => 0x2f,
+                ']' => 0x30,
+                '\\' => 0x31,
+                '#' => 0x32, // Non-US
+                ';' => 0x33,
+                '\'' => 0x34,
+                '`' => 0x35,
+                ',' => 0x36,
+                '.' => 0x37,
+                '/' => 0x38,
+
+                '§' => 0x64, // Non-US
+
                 _ => return None,
             },
             Self::F(num) => match num {
