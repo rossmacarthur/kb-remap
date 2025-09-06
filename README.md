@@ -9,8 +9,9 @@ Tool to assist remapping macOS keyboard keys.
 
 ### Homebrew
 
-**`kb-remap`** can be installed from my personal tap which includes pre-built
-binaries.
+**`kb-remap`** can be installed from my
+[personal tap](https://github.com/rossmacarthur/homebrew-tap) which includes
+pre-built binaries.
 
 ```sh
 brew install rossmacarthur/tap/kb-remap
@@ -122,40 +123,51 @@ There are three ways to specify keys:
 Some keys you can specify using their name. For example the Return (Enter) key
 "⏎" can be specified as "return". These are added on a convenience basis.
 
-| Key                | Code                     | USB Usage Page |         USB Usage ID |
-| ------------------ | ------------------------ | -------------: | -------------------: |
-| Return (Enter)     | `return` / `enter`       |           0x07 |                 0x28 |
-| Escape             | `escape`                 |           0x07 |                 0x29 |
-| Delete (Backspace) | `delete` / `backspace`   |           0x07 |                 0x2A |
-| Tab                | `tab`                    |           0x07 |                 0x2B |
-| Space              | `space`                  |           0x07 |                 0x2C |
-| Caps Lock          | `capslock`               |           0x07 |                 0x39 |
-| Print Screen       | `printscreen`            |           0x07 |                 0x46 |
-| Scroll Lock        | `scrolllock`             |           0x07 |                 0x47 |
-| Pause              | `pause`                  |           0x07 |                 0x48 |
-| Insert             | `insert`                 |           0x07 |                 0x49 |
-| Home               | `home`                   |           0x07 |                 0x4A |
-| PageUp             | `pageup`                 |           0x07 |                 0x4B |
-| Delete Forward     | `deletef`                |           0x07 |                 0x4C |
-| End                | `end`                    |           0x07 |                 0x4D |
-| PageDown           | `pagedown`               |           0x07 |                 0x4E |
-| Right              | `right`                  |           0x07 |                 0x4F |
-| Left               | `left`                   |           0x07 |                 0x50 |
-| Down               | `down`                   |           0x07 |                 0x51 |
-| Up                 | `up`                     |           0x07 |                 0x52 |
-| NumLock            | `numlock`                |           0x07 |                 0x53 |
-| Left Control       | `lcontrol`               |           0x07 |                 0xE0 |
-| Left Shift         | `lshift`                 |           0x07 |                 0xE1 |
-| Left Option        | `loption`                |           0x07 |                 0xE2 |
-| Left Command       | `lcommand`               |           0x07 |                 0xE3 |
-| Right Control      | `rcontrol`               |           0x07 |                 0xE4 |
-| Right Shift        | `rshift`                 |           0x07 |                 0xE5 |
-| Right Option       | `roption`                |           0x07 |                 0xE6 |
-| Right Command      | `rcommand`               |           0x07 |                 0xE7 |
-| Function           | `fn`                     |           0xFF |                 0x03 |
-| Section            | `section`                |           0x07 |                 0x64 |
-| F1, F2, ..., F12   | `f1`, `f2`, ..., `f12`   |           0x07 | 0x3A, 0x3B, ... 0x45 |
-| F13, F14, ..., F24 | `f13`, `f14`, ..., `f24` |           0x07 | 0x68, 0x69, ... 0x73 |
+| Key                | Symbol | Code                   | USB Usage Page |  USB Usage ID |
+| ------------------ | ------ | ---------------------- | -------------: | ------------: |
+| Return (Enter)     | ⏎      | `return` / `enter`     |           0x07 |          0x28 |
+| Escape             | ⎋      | `escape`               |           0x07 |          0x29 |
+| Delete (Backspace) | ⌫      | `delete` / `backspace` |           0x07 |          0x2A |
+| Tab                | ⇥      | `tab`                  |           0x07 |          0x2B |
+| Space              | ␣      | `space`                |           0x07 |          0x2C |
+| Hyphen             | -      | `hyphen`               |           0x07 |          0x2D |
+| Equals             | =      | `equals`               |           0x07 |          0x2E |
+| Left Bracket       | [      | `lbracket`             |           0x07 |          0x2F |
+| Right Bracket      | ]      | `rbracket`             |           0x07 |          0x30 |
+| Backslash          | \      | `backslash`            |           0x07 |          0x31 |
+| Semicolon          | ;      | `semicolon`            |           0x07 |          0x33 |
+| Apostrophe         | '      | `apostrophe`           |           0x07 |          0x34 |
+| Backtick           | `      | `backtick`             |           0x07 |          0x35 |
+| Comma              | ,      | `comma`                |           0x07 |          0x36 |
+| Period             | .      | `period`               |           0x07 |          0x37 |
+| Slash              | /      | `slash`                |           0x07 |          0x38 |
+| Caps Lock          | ⇪      | `capslock`             |           0x07 |          0x39 |
+| F1 ... F12         |        | `f1` ... `f12`         |           0x07 | 0x3A ... 0x45 |
+| Print Screen       | ⎙      | `printscreen`          |           0x07 |          0x46 |
+| Scroll Lock        | ⇳      | `scrolllock`           |           0x07 |          0x47 |
+| Pause              | ⎉      | `pause`                |           0x07 |          0x48 |
+| Insert             | ⎀      | `insert`               |           0x07 |          0x49 |
+| Home               | ↖      | `home`                 |           0x07 |          0x4A |
+| PageUp             | ⇞      | `pageup`               |           0x07 |          0x4B |
+| Delete Forward     | ⌦      | `deletef`              |           0x07 |          0x4C |
+| End                | ↘      | `end`                  |           0x07 |          0x4D |
+| PageDown           | ⇟      | `pagedown`             |           0x07 |          0x4E |
+| Right              | →      | `right`                |           0x07 |          0x4F |
+| Left               | ←      | `left`                 |           0x07 |          0x50 |
+| Down               | ↓      | `down`                 |           0x07 |          0x51 |
+| Up                 | ↑      | `up`                   |           0x07 |          0x52 |
+| NumLock            | ⎎      | `numlock`              |           0x07 |          0x53 |
+| Section            | §      | `section`              |           0x07 |          0x64 |
+| Left Control       | ⌃      | `lcontrol`             |           0x07 |          0xE0 |
+| Left Shift         | ⇧      | `lshift`               |           0x07 |          0xE1 |
+| Left Option        | ⌥      | `loption`              |           0x07 |          0xE2 |
+| Left Command       | ⌘      | `lcommand`             |           0x07 |          0xE3 |
+| Right Control      | ⌃      | `rcontrol`             |           0x07 |          0xE4 |
+| Right Shift        | ⇧      | `rshift`               |           0x07 |          0xE5 |
+| Right Option       | ⌥      | `roption`              |           0x07 |          0xE6 |
+| Right Command      | ⌘      | `rcommand`             |           0x07 |          0xE7 |
+| F13 ... F24        |        | `f13` ... `f24`        |           0x07 | 0x68 ... 0x73 |
+| Function           | fn     | `fn`                   |           0xFF |          0x03 |
 
 Additionally, the following special names are available and map multiple keys if
 they are used.

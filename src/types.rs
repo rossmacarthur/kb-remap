@@ -83,73 +83,50 @@ impl Map {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum Key {
-    /// ⏎
-    Return,
-    /// ESC
-    Escape,
-    /// ⌫
-    Delete,
-    /// ⇥
-    Tab,
-    /// ␣
-    Space,
-    /// ⇪
-    CapsLock,
-    /// Print Screen
-    PrintScreen,
-    /// Scroll Lock
-    ScrollLock,
-    /// Pause
-    Pause,
-    /// Insert
-    Insert,
-    /// Home
-    Home,
-    /// Page Up
-    PageUp,
-    /// Delete Forward
-    DeleteF,
-    /// End
-    End,
-    /// Page Down
-    PageDown,
-    /// →
-    Right,
-    /// ←
-    Left,
-    /// ↓
-    Down,
-    /// ↑
-    Up,
-    /// Num Lock
-    NumLock,
-    /// Left ⌃
-    LeftControl,
-    /// Left ⇧
-    LeftShift,
-    /// Left ⌥
-    LeftOption,
-    /// Left ⌘
-    LeftCommand,
-    /// Right ⌃
-    RightControl,
-    /// Right ⇧
-    RightShift,
-    /// Right ⌥
-    RightOption,
-    /// Right ⌘
-    RightCommand,
-    /// fn
-    Fn,
-
-    /// §
-    Section,
-
-    /// A character on the keyboard.
     Char(char),
 
-    /// A function key e.g. F1, F2, F3, etc.
+    Return,
+    Escape,
+    Delete,
+    Tab,
+    Space,
+    Hyphen,
+    Equals,
+    LeftBracket,
+    RightBracket,
+    Backslash,
+    Semicolon,
+    Apostrophe,
+    Backtick,
+    Comma,
+    Period,
+    Slash,
+    CapsLock,
     F(u8),
+    PrintScreen,
+    ScrollLock,
+    Pause,
+    Insert,
+    Home,
+    PageUp,
+    DeleteF,
+    End,
+    PageDown,
+    Right,
+    Left,
+    Down,
+    Up,
+    NumLock,
+    Section,
+    LeftControl,
+    LeftShift,
+    LeftOption,
+    LeftCommand,
+    RightControl,
+    RightShift,
+    RightOption,
+    RightCommand,
+    Fn,
 
     /// Any key by its usage ID.
     ///
@@ -167,26 +144,44 @@ impl FromStr for Key {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let key = match s.to_lowercase().as_str() {
-            "return" | "enter" => Key::Return,
-            "escape" => Key::Escape,
-            "delete" | "backspace" => Key::Delete,
-            "tab" => Key::Tab,
-            "space" => Key::Space,
-            "capslock" => Key::CapsLock,
-            "printscreen" => Key::PrintScreen,
-            "scrolllock" => Key::ScrollLock,
-            "pause" => Key::Pause,
-            "insert" => Key::Insert,
-            "home" => Key::Home,
-            "pageup" => Key::PageUp,
-            "deletef" => Key::DeleteF,
-            "end" => Key::End,
-            "pagedown" => Key::PageDown,
-            "right" => Key::Right,
-            "left" => Key::Left,
-            "down" => Key::Down,
-            "up" => Key::Up,
-            "numlock" => Key::NumLock,
+            "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n"
+            | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" | "1" | "2"
+            | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0" => Key::Char(s.chars().next().unwrap()),
+
+            "return" | "enter" | "⏎" => Key::Return,
+            "escape" | "⎋" => Key::Escape,
+            "delete" | "backspace" | "⌫" => Key::Delete,
+            "tab" | "⇥" => Key::Tab,
+            "space" | "␣" => Key::Space,
+            "hyphen" | "-" => Key::Hyphen,
+            "equals" | "=" => Key::Equals,
+            "lbracket" | "[" => Key::LeftBracket,
+            "rbracket" | "]" => Key::RightBracket,
+            "backslash" | "\\" => Key::Backslash,
+            "semicolon" | ";" => Key::Semicolon,
+            "apostrophe" | "\"" => Key::Apostrophe,
+            "backtick" | "`" => Key::Backtick,
+            "comma" | "," => Key::Comma,
+            "period" | "." => Key::Period,
+            "slash" | "/" => Key::Slash,
+            "capslock" | "⇪" => Key::CapsLock,
+            "printscreen" | "⎙" => Key::PrintScreen,
+            "scrolllock" | "⇳" => Key::ScrollLock,
+            "pause" | "⎉" => Key::Pause,
+            "insert" | "⎀" => Key::Insert,
+            "home" | "↖" => Key::Home,
+            "pageup" | "⇞" => Key::PageUp,
+            "deletef" | "⌦" => Key::DeleteF,
+            "end" | "↘" => Key::End,
+            "pagedown" | "⇟" => Key::PageDown,
+            "right" | "→" => Key::Right,
+            "left" | "←" => Key::Left,
+            "down" | "↓" => Key::Down,
+            "up" | "↑" => Key::Up,
+            "numlock" | "⎎" => Key::NumLock,
+
+            "section" | "§" => Key::Section,
+
             "lcontrol" => Key::LeftControl,
             "rcontrol" => Key::RightControl,
             "lshift" => Key::LeftShift,
@@ -195,19 +190,24 @@ impl FromStr for Key {
             "roption" => Key::RightOption,
             "lcommand" => Key::LeftCommand,
             "rcommand" => Key::RightCommand,
+
             "fn" => Key::Fn,
-            "section" => Key::Section,
+
             m => {
-                if m.chars().count() == 1 {
-                    return Ok(Key::Char(s.chars().next().unwrap()));
-                } else if let Some(f) = m.strip_prefix('f') {
-                    let num: u8 = f.parse()?;
+                if let Some(f) = m.strip_prefix('f') {
+                    let num: u8 = match f.parse() {
+                        Ok(num) => num,
+                        Err(_) => bail!("unknown key: {s}"),
+                    };
                     if !(1..=24).contains(&num) {
                         bail!("invalid function key number: {}", num);
                     }
                     return Ok(Key::F(num));
                 }
-                hex::parse(m).map(Key::Raw)?
+                match hex::parse(m) {
+                    Ok(raw) => Key::Raw(raw),
+                    Err(_) => bail!("unknown key: {s}"),
+                }
             }
         };
         Ok(key)
@@ -233,12 +233,71 @@ impl Key {
     fn usage_id(&self) -> Option<u64> {
         // https://developer.apple.com/library/archive/technotes/tn2450/_index.html
         let usage_id = match *self {
+            Self::Char('a' | 'A') => 0x04,
+            Self::Char('b' | 'B') => 0x05,
+            Self::Char('c' | 'C') => 0x06,
+            Self::Char('d' | 'D') => 0x07,
+            Self::Char('e' | 'E') => 0x08,
+            Self::Char('f' | 'F') => 0x09,
+            Self::Char('g' | 'G') => 0x0a,
+            Self::Char('h' | 'H') => 0x0b,
+            Self::Char('i' | 'I') => 0x0c,
+            Self::Char('j' | 'J') => 0x0d,
+            Self::Char('k' | 'K') => 0x0e,
+            Self::Char('l' | 'L') => 0x0f,
+            Self::Char('m' | 'M') => 0x10,
+            Self::Char('n' | 'N') => 0x11,
+            Self::Char('o' | 'O') => 0x12,
+            Self::Char('p' | 'P') => 0x13,
+            Self::Char('q' | 'Q') => 0x14,
+            Self::Char('r' | 'R') => 0x15,
+            Self::Char('s' | 'S') => 0x16,
+            Self::Char('t' | 'T') => 0x17,
+            Self::Char('u' | 'U') => 0x18,
+            Self::Char('v' | 'V') => 0x19,
+            Self::Char('w' | 'W') => 0x1a,
+            Self::Char('x' | 'X') => 0x1b,
+            Self::Char('y' | 'Y') => 0x1c,
+            Self::Char('z' | 'Z') => 0x1d,
+            Self::Char('1') => 0x1e,
+            Self::Char('2') => 0x1f,
+            Self::Char('3') => 0x20,
+            Self::Char('4') => 0x21,
+            Self::Char('5') => 0x22,
+            Self::Char('6') => 0x23,
+            Self::Char('7') => 0x24,
+            Self::Char('8') => 0x25,
+            Self::Char('9') => 0x26,
+            Self::Char('0') => 0x27,
             Self::Return => 0x28,
             Self::Escape => 0x29,
             Self::Delete => 0x2a,
             Self::Tab => 0x2b,
             Self::Space => 0x2c,
+            Self::Hyphen => 0x2d,
+            Self::Equals => 0x2e,
+            Self::LeftBracket => 0x2f,
+            Self::RightBracket => 0x30,
+            Self::Backslash => 0x31,
+            Self::Semicolon => 0x33,
+            Self::Apostrophe => 0x34,
+            Self::Backtick => 0x35,
+            Self::Comma => 0x36,
+            Self::Period => 0x37,
+            Self::Slash => 0x38,
             Self::CapsLock => 0x39,
+            Self::F(1) => 0x3a,
+            Self::F(2) => 0x3b,
+            Self::F(3) => 0x3c,
+            Self::F(4) => 0x3d,
+            Self::F(5) => 0x3e,
+            Self::F(6) => 0x3f,
+            Self::F(7) => 0x40,
+            Self::F(8) => 0x41,
+            Self::F(9) => 0x42,
+            Self::F(10) => 0x43,
+            Self::F(11) => 0x44,
+            Self::F(12) => 0x45,
             Self::PrintScreen => 0x46,
             Self::ScrollLock => 0x47,
             Self::Pause => 0x48,
@@ -253,6 +312,9 @@ impl Key {
             Self::Down => 0x51,
             Self::Up => 0x52,
             Self::NumLock => 0x53,
+
+            Self::Section => 0x64,
+
             Self::LeftControl => 0xe0,
             Self::LeftShift => 0xe1,
             Self::LeftOption => 0xe2,
@@ -261,91 +323,24 @@ impl Key {
             Self::RightShift => 0xe5,
             Self::RightOption => 0xe6,
             Self::RightCommand => 0xe7,
-            Self::Fn => 0x03,
-            Self::Section => 0x64,
-            Self::Char(c) => match c {
-                'a' | 'A' => 0x04,
-                'b' | 'B' => 0x05,
-                'c' | 'C' => 0x06,
-                'd' | 'D' => 0x07,
-                'e' | 'E' => 0x08,
-                'f' | 'F' => 0x09,
-                'g' | 'G' => 0x0a,
-                'h' | 'H' => 0x0b,
-                'i' | 'I' => 0x0c,
-                'j' | 'J' => 0x0d,
-                'k' | 'K' => 0x0e,
-                'l' | 'L' => 0x0f,
-                'm' | 'M' => 0x10,
-                'n' | 'N' => 0x11,
-                'o' | 'O' => 0x12,
-                'p' | 'P' => 0x13,
-                'q' | 'Q' => 0x14,
-                'r' | 'R' => 0x15,
-                's' | 'S' => 0x16,
-                't' | 'T' => 0x17,
-                'u' | 'U' => 0x18,
-                'v' | 'V' => 0x19,
-                'w' | 'W' => 0x1a,
-                'x' | 'X' => 0x1b,
-                'y' | 'Y' => 0x1c,
-                'z' | 'Z' => 0x1d,
 
-                '1' => 0x1e,
-                '2' => 0x1f,
-                '3' => 0x20,
-                '4' => 0x21,
-                '5' => 0x22,
-                '6' => 0x23,
-                '7' => 0x24,
-                '8' => 0x25,
-                '9' => 0x26,
-                '0' => 0x27,
+            Self::F(13) => 0x68,
+            Self::F(14) => 0x69,
+            Self::F(15) => 0x6A,
+            Self::F(16) => 0x6B,
+            Self::F(17) => 0x6C,
+            Self::F(18) => 0x6D,
+            Self::F(19) => 0x6E,
+            Self::F(20) => 0x6F,
+            Self::F(21) => 0x70,
+            Self::F(22) => 0x71,
+            Self::F(23) => 0x72,
+            Self::F(24) => 0x73,
 
-                '-' => 0x2d,
-                '=' => 0x2e,
-                '[' => 0x2f,
-                ']' => 0x30,
-                '\\' => 0x31,
-                '#' => 0x32, // Non-US
-                ';' => 0x33,
-                '\'' => 0x34,
-                '`' => 0x35,
-                ',' => 0x36,
-                '.' => 0x37,
-                '/' => 0x38,
+            Self::Fn => 0x03, // Apple vendor-defined usage
 
-                '§' => 0x64, // Non-US
-
-                _ => return None,
-            },
-            Self::F(num) => match num {
-                1 => 0x3a,
-                2 => 0x3b,
-                3 => 0x3c,
-                4 => 0x3d,
-                5 => 0x3e,
-                6 => 0x3f,
-                7 => 0x40,
-                8 => 0x41,
-                9 => 0x42,
-                10 => 0x43,
-                11 => 0x44,
-                12 => 0x45,
-                13 => 0x68,
-                14 => 0x69,
-                15 => 0x6A,
-                16 => 0x6B,
-                17 => 0x6C,
-                18 => 0x6D,
-                19 => 0x6E,
-                20 => 0x6F,
-                21 => 0x70,
-                22 => 0x71,
-                23 => 0x72,
-                24 => 0x73,
-                _ => unreachable!(),
-            },
+            Self::Char(_) => unreachable!(),
+            Self::F(_) => unreachable!(),
             Self::Raw(raw) => raw,
         };
         Some(usage_id)
